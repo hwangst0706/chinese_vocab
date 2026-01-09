@@ -94,6 +94,20 @@ export default function HomeScreen(): React.JSX.Element
                     </View>
                 </View>
 
+                {/* 퀴즈 시작 버튼 */}
+                <TouchableOpacity
+                    style={[styles.startButton, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
+                    onPress={handleStartQuiz}
+                    activeOpacity={0.8}
+                >
+                    <Text style={[styles.startButtonText, { color: '#FFFFFF' }]}>학습 시작</Text>
+                    <Text style={[styles.startButtonSubtext, { color: 'rgba(255,255,255,0.8)' }]}>
+                        {aReviewWords.length > 0
+                            ? `복습 ${aReviewWords.length}개 + 새 단어`
+                            : '새 단어 학습'}
+                    </Text>
+                </TouchableOpacity>
+
                 {/* HSK 레벨별 진도 */}
                 <View style={styles.levelSection}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>학습 진도</Text>
@@ -134,20 +148,6 @@ export default function HomeScreen(): React.JSX.Element
                         );
                     })}
                 </View>
-
-                {/* 퀴즈 시작 버튼 */}
-                <TouchableOpacity
-                    style={[styles.startButton, { backgroundColor: colors.primary, shadowColor: colors.shadow }]}
-                    onPress={handleStartQuiz}
-                    activeOpacity={0.8}
-                >
-                    <Text style={[styles.startButtonText, { color: '#FFFFFF' }]}>학습 시작</Text>
-                    <Text style={[styles.startButtonSubtext, { color: 'rgba(255,255,255,0.8)' }]}>
-                        {aReviewWords.length > 0
-                            ? `복습 ${aReviewWords.length}개 + 새 단어`
-                            : '새 단어 학습'}
-                    </Text>
-                </TouchableOpacity>
             </ScrollView>
         </SafeAreaView>
     );
@@ -273,7 +273,7 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         paddingVertical: 20,
         alignItems: 'center',
-        marginTop: 8,
+        marginBottom: 24,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.3,
         shadowRadius: 12,

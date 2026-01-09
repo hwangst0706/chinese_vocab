@@ -294,8 +294,8 @@ export default function QuizScreen(): React.JSX.Element
             }
         }
 
-        // TTS: 정답일 때 한자 읽어주기
-        if (bIsCorrect && settings.bSoundEnabled)
+        // TTS: 정답/오답 모두 한자 읽어주기
+        if (settings.bSoundEnabled)
         {
             Speech.speak(stCurrentQuestion.stWord.szHanzi, {
                 language: 'zh-CN',
@@ -351,6 +351,17 @@ export default function QuizScreen(): React.JSX.Element
     const handleRetry = (): void =>
     {
         initializeQuiz();
+    };
+
+    const handleReplaySound = (): void =>
+    {
+        if (stCurrentQuestion)
+        {
+            Speech.speak(stCurrentQuestion.stWord.szHanzi, {
+                language: 'zh-CN',
+                rate: 0.8,
+            });
+        }
     };
 
     // 로딩 중
@@ -560,6 +571,17 @@ export default function QuizScreen(): React.JSX.Element
                                 : `오답! 정답: ${stCurrentQuestion.aOptions[stCurrentQuestion.nCorrectIndex]}`}
                         </Text>
 
+                        {/* 다시듣기 버튼 */}
+                        <TouchableOpacity
+                            style={[styles.replayButton, { backgroundColor: colors.surface }]}
+                            onPress={handleReplaySound}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.replayButtonText, { color: colors.primary }]}>
+                                🔊 다시 듣기
+                            </Text>
+                        </TouchableOpacity>
+
                         {stCurrentQuestion.stWord.szExample && (
                             <View style={[styles.exampleContainer, { backgroundColor: colors.surface }]}>
                                 <Text style={[styles.exampleText, { color: colors.text }]}>
@@ -721,7 +743,17 @@ const styles = StyleSheet.create({
     feedbackText: {
         fontSize: 18,
         fontWeight: '600',
+        marginBottom: 12,
+    },
+    replayButton: {
+        borderRadius: 20,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
         marginBottom: 16,
+    },
+    replayButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
     },
     exampleContainer: {
         borderRadius: 12,
