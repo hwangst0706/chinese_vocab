@@ -11,13 +11,14 @@ import {
     ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { colors, hskLevelColors } from '../constants/colors';
+import { useTheme, getHskLevelColor } from '../contexts/ThemeContext';
 import { useAppStore } from '../store';
 import { HskLevel } from '../types';
 import { levelWordCounts } from '../data';
 
 export default function StatsScreen(): React.JSX.Element
 {
+    const { colors } = useTheme();
     const { settings, dailyStats, wordProgress, getLevelStats, getTodayStats } = useAppStore();
 
     const stTodayStats = getTodayStats();
@@ -66,31 +67,31 @@ export default function StatsScreen(): React.JSX.Element
     const nMaxQuestions = Math.max(...aLast7Days.map((d) => d.nQuestions), 1);
 
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
             >
-                <Text style={styles.title}>학습 통계</Text>
+                <Text style={[styles.title, { color: colors.text }]}>학습 통계</Text>
 
                 {/* 오늘 통계 */}
-                <View style={styles.todayCard}>
-                    <Text style={styles.sectionTitle}>오늘</Text>
+                <View style={[styles.todayCard, { backgroundColor: colors.surface }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>오늘</Text>
                     <View style={styles.todayStats}>
                         <View style={styles.todayStat}>
-                            <Text style={styles.todayStatValue}>
+                            <Text style={[styles.todayStatValue, { color: colors.accent }]}>
                                 {stTodayStats.nQuestionsAnswered}
                             </Text>
-                            <Text style={styles.todayStatLabel}>문제 풀이</Text>
+                            <Text style={[styles.todayStatLabel, { color: colors.textSecondary }]}>문제 풀이</Text>
                         </View>
                         <View style={styles.todayStat}>
-                            <Text style={styles.todayStatValue}>
+                            <Text style={[styles.todayStatValue, { color: colors.accent }]}>
                                 {stTodayStats.nCorrectAnswers}
                             </Text>
-                            <Text style={styles.todayStatLabel}>정답</Text>
+                            <Text style={[styles.todayStatLabel, { color: colors.textSecondary }]}>정답</Text>
                         </View>
                         <View style={styles.todayStat}>
-                            <Text style={styles.todayStatValue}>
+                            <Text style={[styles.todayStatValue, { color: colors.accent }]}>
                                 {stTodayStats.nQuestionsAnswered > 0
                                     ? Math.round(
                                           (stTodayStats.nCorrectAnswers /
@@ -100,14 +101,14 @@ export default function StatsScreen(): React.JSX.Element
                                     : 0}
                                 %
                             </Text>
-                            <Text style={styles.todayStatLabel}>정답률</Text>
+                            <Text style={[styles.todayStatLabel, { color: colors.textSecondary }]}>정답률</Text>
                         </View>
                     </View>
                 </View>
 
                 {/* 주간 차트 */}
-                <View style={styles.weeklyCard}>
-                    <Text style={styles.sectionTitle}>최근 7일</Text>
+                <View style={[styles.weeklyCard, { backgroundColor: colors.surface }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>최근 7일</Text>
                     <View style={styles.chartContainer}>
                         {aLast7Days.map((day, index) =>
                         {
@@ -119,7 +120,7 @@ export default function StatsScreen(): React.JSX.Element
 
                             return (
                                 <View key={index} style={styles.chartBar}>
-                                    <Text style={styles.chartValue}>
+                                    <Text style={[styles.chartValue, { color: colors.textSecondary }]}>
                                         {day.nQuestions > 0 ? day.nQuestions : ''}
                                     </Text>
                                     <View style={styles.barContainer}>
@@ -136,7 +137,7 @@ export default function StatsScreen(): React.JSX.Element
                                             ]}
                                         />
                                     </View>
-                                    <Text style={styles.chartLabel}>{szDayLabel}</Text>
+                                    <Text style={[styles.chartLabel, { color: colors.textSecondary }]}>{szDayLabel}</Text>
                                 </View>
                             );
                         })}
@@ -144,31 +145,31 @@ export default function StatsScreen(): React.JSX.Element
                 </View>
 
                 {/* 전체 통계 */}
-                <View style={styles.overallCard}>
-                    <Text style={styles.sectionTitle}>전체 기록</Text>
+                <View style={[styles.overallCard, { backgroundColor: colors.surface }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>전체 기록</Text>
                     <View style={styles.overallStats}>
-                        <View style={styles.overallStat}>
-                            <Text style={styles.overallStatValue}>{nTotalQuestions}</Text>
-                            <Text style={styles.overallStatLabel}>총 문제 수</Text>
+                        <View style={[styles.overallStat, { backgroundColor: colors.surfaceLight }]}>
+                            <Text style={[styles.overallStatValue, { color: colors.text }]}>{nTotalQuestions}</Text>
+                            <Text style={[styles.overallStatLabel, { color: colors.textSecondary }]}>총 문제 수</Text>
                         </View>
-                        <View style={styles.overallStat}>
-                            <Text style={styles.overallStatValue}>{nOverallAccuracy}%</Text>
-                            <Text style={styles.overallStatLabel}>평균 정답률</Text>
+                        <View style={[styles.overallStat, { backgroundColor: colors.surfaceLight }]}>
+                            <Text style={[styles.overallStatValue, { color: colors.text }]}>{nOverallAccuracy}%</Text>
+                            <Text style={[styles.overallStatLabel, { color: colors.textSecondary }]}>평균 정답률</Text>
                         </View>
-                        <View style={styles.overallStat}>
-                            <Text style={styles.overallStatValue}>{nTotalWords}</Text>
-                            <Text style={styles.overallStatLabel}>학습한 단어</Text>
+                        <View style={[styles.overallStat, { backgroundColor: colors.surfaceLight }]}>
+                            <Text style={[styles.overallStatValue, { color: colors.text }]}>{nTotalWords}</Text>
+                            <Text style={[styles.overallStatLabel, { color: colors.textSecondary }]}>학습한 단어</Text>
                         </View>
-                        <View style={styles.overallStat}>
-                            <Text style={styles.overallStatValue}>{nMasteredWords}</Text>
-                            <Text style={styles.overallStatLabel}>완료 단어</Text>
+                        <View style={[styles.overallStat, { backgroundColor: colors.surfaceLight }]}>
+                            <Text style={[styles.overallStatValue, { color: colors.text }]}>{nMasteredWords}</Text>
+                            <Text style={[styles.overallStatLabel, { color: colors.textSecondary }]}>완료 단어</Text>
                         </View>
                     </View>
                 </View>
 
                 {/* HSK 급수별 통계 */}
-                <View style={styles.levelCard}>
-                    <Text style={styles.sectionTitle}>급수별 진도</Text>
+                <View style={[styles.levelCard, { backgroundColor: colors.surface }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>급수별 진도</Text>
                     {settings.aSelectedLevels.map((nLevel) =>
                     {
                         const stStats = getLevelStats(nLevel as HskLevel);
@@ -191,43 +192,43 @@ export default function StatsScreen(): React.JSX.Element
                                     <Text
                                         style={[
                                             styles.levelTitle,
-                                            { color: hskLevelColors[nLevel] },
+                                            { color: getHskLevelColor(nLevel, colors) },
                                         ]}
                                     >
                                         HSK {nLevel}
                                     </Text>
-                                    <Text style={styles.levelCount}>
+                                    <Text style={[styles.levelCount, { color: colors.textSecondary }]}>
                                         {stStats.nTotalWords}개 단어
                                     </Text>
                                 </View>
 
                                 <View style={styles.levelProgress}>
                                     <View style={styles.levelProgressRow}>
-                                        <Text style={styles.levelProgressLabel}>
+                                        <Text style={[styles.levelProgressLabel, { color: colors.textSecondary }]}>
                                             학습 ({stStats.nLearnedWords})
                                         </Text>
-                                        <View style={styles.levelProgressBar}>
+                                        <View style={[styles.levelProgressBar, { backgroundColor: colors.surfaceLight }]}>
                                             <View
                                                 style={[
                                                     styles.levelProgressFill,
                                                     {
                                                         width: `${nLearnedPercent}%`,
                                                         backgroundColor:
-                                                            hskLevelColors[nLevel],
+                                                            getHskLevelColor(nLevel, colors),
                                                     },
                                                 ]}
                                             />
                                         </View>
-                                        <Text style={styles.levelProgressPercent}>
+                                        <Text style={[styles.levelProgressPercent, { color: colors.textSecondary }]}>
                                             {nLearnedPercent}%
                                         </Text>
                                     </View>
 
                                     <View style={styles.levelProgressRow}>
-                                        <Text style={styles.levelProgressLabel}>
+                                        <Text style={[styles.levelProgressLabel, { color: colors.textSecondary }]}>
                                             완료 ({stStats.nMasteredWords})
                                         </Text>
-                                        <View style={styles.levelProgressBar}>
+                                        <View style={[styles.levelProgressBar, { backgroundColor: colors.surfaceLight }]}>
                                             <View
                                                 style={[
                                                     styles.levelProgressFill,
@@ -238,7 +239,7 @@ export default function StatsScreen(): React.JSX.Element
                                                 ]}
                                             />
                                         </View>
-                                        <Text style={styles.levelProgressPercent}>
+                                        <Text style={[styles.levelProgressPercent, { color: colors.textSecondary }]}>
                                             {nMasteredPercent}%
                                         </Text>
                                     </View>
@@ -255,7 +256,6 @@ export default function StatsScreen(): React.JSX.Element
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
     },
     scrollView: {
         flex: 1,
@@ -266,17 +266,14 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 32,
         fontWeight: '700',
-        color: colors.text,
         marginBottom: 24,
     },
     sectionTitle: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.text,
         marginBottom: 16,
     },
     todayCard: {
-        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 20,
         marginBottom: 20,
@@ -291,15 +288,12 @@ const styles = StyleSheet.create({
     todayStatValue: {
         fontSize: 32,
         fontWeight: '700',
-        color: colors.accent,
     },
     todayStatLabel: {
         fontSize: 14,
-        color: colors.textSecondary,
         marginTop: 4,
     },
     weeklyCard: {
-        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 20,
         marginBottom: 20,
@@ -316,7 +310,6 @@ const styles = StyleSheet.create({
     },
     chartValue: {
         fontSize: 12,
-        color: colors.textSecondary,
         marginBottom: 4,
         height: 16,
     },
@@ -331,11 +324,9 @@ const styles = StyleSheet.create({
     },
     chartLabel: {
         fontSize: 12,
-        color: colors.textSecondary,
         marginTop: 8,
     },
     overallCard: {
-        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 20,
         marginBottom: 20,
@@ -347,7 +338,6 @@ const styles = StyleSheet.create({
     },
     overallStat: {
         width: '48%',
-        backgroundColor: colors.surfaceLight,
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
@@ -356,15 +346,12 @@ const styles = StyleSheet.create({
     overallStatValue: {
         fontSize: 28,
         fontWeight: '700',
-        color: colors.text,
     },
     overallStatLabel: {
         fontSize: 12,
-        color: colors.textSecondary,
         marginTop: 4,
     },
     levelCard: {
-        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 20,
         marginBottom: 20,
@@ -384,7 +371,6 @@ const styles = StyleSheet.create({
     },
     levelCount: {
         fontSize: 14,
-        color: colors.textSecondary,
     },
     levelProgress: {
         gap: 8,
@@ -395,13 +381,11 @@ const styles = StyleSheet.create({
     },
     levelProgressLabel: {
         fontSize: 12,
-        color: colors.textSecondary,
         width: 70,
     },
     levelProgressBar: {
         flex: 1,
         height: 8,
-        backgroundColor: colors.surfaceLight,
         borderRadius: 4,
         overflow: 'hidden',
         marginHorizontal: 8,
@@ -412,7 +396,6 @@ const styles = StyleSheet.create({
     },
     levelProgressPercent: {
         fontSize: 12,
-        color: colors.textSecondary,
         width: 40,
         textAlign: 'right',
     },

@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { colors, hskLevelColors } from '../constants/colors';
+import { useTheme, getHskLevelColor } from '../contexts/ThemeContext';
 import { useAppStore } from '../store';
 import { getWordById } from '../data';
 import { Word, WordProgress } from '../types';
@@ -27,6 +27,7 @@ interface WrongWordItem
 export default function MostWrongWordsScreen(): React.JSX.Element
 {
     const navigation = useNavigation();
+    const { colors } = useTheme();
     const { getMostWrongWords } = useAppStore();
 
     const aMostWrong = getMostWrongWords();
@@ -50,47 +51,49 @@ export default function MostWrongWordsScreen(): React.JSX.Element
             : 0;
 
         return (
-            <View style={styles.wordCard}>
+            <View style={[styles.wordCard, { backgroundColor: colors.surface }]}>
                 <View style={styles.rankContainer}>
                     <Text style={[
                         styles.rank,
-                        index < 3 && styles.topRank,
+                        { color: colors.textSecondary },
+                        index < 3 && { fontSize: 20, color: colors.wrong, fontWeight: '700' },
                     ]}>
                         {index + 1}
                     </Text>
                 </View>
                 <View style={styles.wordInfo}>
                     <View style={styles.wordHeader}>
-                        <Text style={styles.hanzi}>{item.word.szHanzi}</Text>
+                        <Text style={[styles.hanzi, { color: colors.text }]}>{item.word.szHanzi}</Text>
                         <View
                             style={[
                                 styles.levelBadge,
-                                { backgroundColor: hskLevelColors[item.word.nLevel] },
+                                { backgroundColor: getHskLevelColor(item.word.nLevel, colors) },
                             ]}
                         >
-                            <Text style={styles.levelText}>HSK {item.word.nLevel}</Text>
+                            <Text style={[styles.levelText, { color: colors.background }]}>HSK {item.word.nLevel}</Text>
                         </View>
                     </View>
-                    <Text style={styles.pinyin}>{item.word.szPinyin}</Text>
-                    <Text style={styles.meaning}>{item.word.szMeaning}</Text>
+                    <Text style={[styles.pinyin, { color: colors.primary }]}>{item.word.szPinyin}</Text>
+                    <Text style={[styles.meaning, { color: colors.textSecondary }]}>{item.word.szMeaning}</Text>
                 </View>
                 <View style={styles.statsContainer}>
                     <View style={styles.statItem}>
-                        <Text style={styles.wrongCount}>{item.progress.nWrongCount}</Text>
-                        <Text style={styles.statLabel}>오답</Text>
+                        <Text style={[styles.wrongCount, { color: colors.wrong }]}>{item.progress.nWrongCount}</Text>
+                        <Text style={[styles.statLabel, { color: colors.textMuted }]}>오답</Text>
                     </View>
                     <View style={styles.statItem}>
-                        <Text style={styles.correctCount}>{item.progress.nCorrectCount}</Text>
-                        <Text style={styles.statLabel}>정답</Text>
+                        <Text style={[styles.correctCount, { color: colors.correct }]}>{item.progress.nCorrectCount}</Text>
+                        <Text style={[styles.statLabel, { color: colors.textMuted }]}>정답</Text>
                     </View>
                     <View style={styles.statItem}>
                         <Text style={[
                             styles.accuracy,
-                            nAccuracy < 50 && styles.lowAccuracy,
+                            { color: colors.text },
+                            nAccuracy < 50 && { color: colors.wrong },
                         ]}>
                             {nAccuracy}%
                         </Text>
-                        <Text style={styles.statLabel}>정답률</Text>
+                        <Text style={[styles.statLabel, { color: colors.textMuted }]}>정답률</Text>
                     </View>
                 </View>
             </View>
@@ -100,25 +103,25 @@ export default function MostWrongWordsScreen(): React.JSX.Element
     const renderEmptyList = (): React.JSX.Element => (
         <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>🎉</Text>
-            <Text style={styles.emptyText}>틀린 단어가 없습니다</Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptyText, { color: colors.text }]}>틀린 단어가 없습니다</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
                 퀴즈를 풀면 틀린 단어가 여기에 표시됩니다
             </Text>
         </View>
     );
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}>← 뒤로</Text>
+                    <Text style={[styles.backButton, { color: colors.primary }]}>← 뒤로</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>오답 단어</Text>
+                <Text style={[styles.title, { color: colors.text }]}>오답 단어</Text>
                 <View style={styles.placeholder} />
             </View>
 
             <View style={styles.countContainer}>
-                <Text style={styles.countText}>
+                <Text style={[styles.countText, { color: colors.textSecondary }]}>
                     총 {aWrongWords.length}개 단어 (오답 횟수 순)
                 </Text>
             </View>
@@ -137,7 +140,6 @@ export default function MostWrongWordsScreen(): React.JSX.Element
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -146,16 +148,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border,
     },
     backButton: {
         fontSize: 16,
-        color: colors.primary,
     },
     title: {
         fontSize: 18,
         fontWeight: '700',
-        color: colors.text,
     },
     placeholder: {
         width: 50,
@@ -166,7 +165,6 @@ const styles = StyleSheet.create({
     },
     countText: {
         fontSize: 14,
-        color: colors.textSecondary,
     },
     listContent: {
         paddingHorizontal: 20,
@@ -175,7 +173,6 @@ const styles = StyleSheet.create({
     wordCard: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 12,
         marginBottom: 12,
@@ -188,12 +185,6 @@ const styles = StyleSheet.create({
     rank: {
         fontSize: 16,
         fontWeight: '600',
-        color: colors.textSecondary,
-    },
-    topRank: {
-        fontSize: 20,
-        color: colors.wrong,
-        fontWeight: '700',
     },
     wordInfo: {
         flex: 1,
@@ -206,7 +197,6 @@ const styles = StyleSheet.create({
     hanzi: {
         fontSize: 20,
         fontWeight: '700',
-        color: colors.text,
         marginRight: 8,
     },
     levelBadge: {
@@ -217,16 +207,13 @@ const styles = StyleSheet.create({
     levelText: {
         fontSize: 9,
         fontWeight: '600',
-        color: colors.background,
     },
     pinyin: {
         fontSize: 12,
-        color: colors.primary,
         marginBottom: 1,
     },
     meaning: {
         fontSize: 12,
-        color: colors.textSecondary,
     },
     statsContainer: {
         flexDirection: 'row',
@@ -240,24 +227,17 @@ const styles = StyleSheet.create({
     wrongCount: {
         fontSize: 18,
         fontWeight: '700',
-        color: colors.wrong,
     },
     correctCount: {
         fontSize: 18,
         fontWeight: '700',
-        color: colors.correct,
     },
     accuracy: {
         fontSize: 14,
         fontWeight: '600',
-        color: colors.text,
-    },
-    lowAccuracy: {
-        color: colors.wrong,
     },
     statLabel: {
         fontSize: 10,
-        color: colors.textMuted,
         marginTop: 2,
     },
     emptyContainer: {
@@ -273,12 +253,10 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.text,
         marginBottom: 8,
     },
     emptySubtext: {
         fontSize: 14,
-        color: colors.textSecondary,
         textAlign: 'center',
     },
 });

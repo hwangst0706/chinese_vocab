@@ -15,7 +15,7 @@ import SettingsScreen from '../screens/SettingsScreen';
 import StatsScreen from '../screens/StatsScreen';
 import ExcludedWordsScreen from '../screens/ExcludedWordsScreen';
 import MostWrongWordsScreen from '../screens/MostWrongWordsScreen';
-import { colors } from '../constants/colors';
+import { useTheme } from '../contexts/ThemeContext';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
@@ -33,6 +33,8 @@ function TabIcon({ szIcon, bFocused }: { szIcon: string; bFocused: boolean }): R
 
 function HomeTabs(): React.JSX.Element
 {
+    const { colors } = useTheme();
+
     return (
         <Tab.Navigator
             screenOptions={{
@@ -87,26 +89,35 @@ function HomeTabs(): React.JSX.Element
     );
 }
 
+function MainNavigator(): React.JSX.Element
+{
+    const { colors } = useTheme();
+
+    return (
+        <Stack.Navigator
+            screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: colors.background },
+                animation: 'slide_from_right',
+            }}
+        >
+            <Stack.Screen name="MainTabs" component={HomeTabs} />
+            <Stack.Screen
+                name="Quiz"
+                component={QuizScreen}
+                options={{ gestureEnabled: false }}
+            />
+            <Stack.Screen name="ExcludedWords" component={ExcludedWordsScreen} />
+            <Stack.Screen name="MostWrongWords" component={MostWrongWordsScreen} />
+        </Stack.Navigator>
+    );
+}
+
 export default function AppNavigator(): React.JSX.Element
 {
     return (
         <NavigationContainer>
-            <Stack.Navigator
-                screenOptions={{
-                    headerShown: false,
-                    contentStyle: { backgroundColor: colors.background },
-                    animation: 'slide_from_right',
-                }}
-            >
-                <Stack.Screen name="MainTabs" component={HomeTabs} />
-                <Stack.Screen
-                    name="Quiz"
-                    component={QuizScreen}
-                    options={{ gestureEnabled: false }}
-                />
-                <Stack.Screen name="ExcludedWords" component={ExcludedWordsScreen} />
-                <Stack.Screen name="MostWrongWords" component={MostWrongWordsScreen} />
-            </Stack.Navigator>
+            <MainNavigator />
         </NavigationContainer>
     );
 }

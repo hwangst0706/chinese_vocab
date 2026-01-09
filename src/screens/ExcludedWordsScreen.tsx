@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { colors, hskLevelColors } from '../constants/colors';
+import { useTheme, getHskLevelColor } from '../contexts/ThemeContext';
 import { useAppStore } from '../store';
 import { getWordById } from '../data';
 import { Word } from '../types';
@@ -27,6 +27,7 @@ interface ExcludedWordItem
 export default function ExcludedWordsScreen(): React.JSX.Element
 {
     const navigation = useNavigation();
+    const { colors } = useTheme();
     const { getExcludedWordIds, toggleWordExclusion } = useAppStore();
 
     const aExcludedIds = getExcludedWordIds();
@@ -44,27 +45,27 @@ export default function ExcludedWordsScreen(): React.JSX.Element
     };
 
     const renderItem = ({ item }: { item: ExcludedWordItem }): React.JSX.Element => (
-        <View style={styles.wordCard}>
+        <View style={[styles.wordCard, { backgroundColor: colors.surface }]}>
             <View style={styles.wordInfo}>
                 <View style={styles.wordHeader}>
-                    <Text style={styles.hanzi}>{item.word.szHanzi}</Text>
+                    <Text style={[styles.hanzi, { color: colors.text }]}>{item.word.szHanzi}</Text>
                     <View
                         style={[
                             styles.levelBadge,
-                            { backgroundColor: hskLevelColors[item.word.nLevel] },
+                            { backgroundColor: getHskLevelColor(item.word.nLevel, colors) },
                         ]}
                     >
-                        <Text style={styles.levelText}>HSK {item.word.nLevel}</Text>
+                        <Text style={[styles.levelText, { color: colors.background }]}>HSK {item.word.nLevel}</Text>
                     </View>
                 </View>
-                <Text style={styles.pinyin}>{item.word.szPinyin}</Text>
-                <Text style={styles.meaning}>{item.word.szMeaning}</Text>
+                <Text style={[styles.pinyin, { color: colors.primary }]}>{item.word.szPinyin}</Text>
+                <Text style={[styles.meaning, { color: colors.textSecondary }]}>{item.word.szMeaning}</Text>
             </View>
             <TouchableOpacity
-                style={styles.restoreButton}
+                style={[styles.restoreButton, { backgroundColor: colors.primary }]}
                 onPress={() => handleRestore(item.szId)}
             >
-                <Text style={styles.restoreButtonText}>복원</Text>
+                <Text style={[styles.restoreButtonText, { color: colors.text }]}>복원</Text>
             </TouchableOpacity>
         </View>
     );
@@ -72,25 +73,25 @@ export default function ExcludedWordsScreen(): React.JSX.Element
     const renderEmptyList = (): React.JSX.Element => (
         <View style={styles.emptyContainer}>
             <Text style={styles.emptyEmoji}>📚</Text>
-            <Text style={styles.emptyText}>제외된 단어가 없습니다</Text>
-            <Text style={styles.emptySubtext}>
+            <Text style={[styles.emptyText, { color: colors.text }]}>제외된 단어가 없습니다</Text>
+            <Text style={[styles.emptySubtext, { color: colors.textSecondary }]}>
                 퀴즈 중 단어를 제외하면 여기에 표시됩니다
             </Text>
         </View>
     );
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.header}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+            <View style={[styles.header, { borderBottomColor: colors.border }]}>
                 <TouchableOpacity onPress={() => navigation.goBack()}>
-                    <Text style={styles.backButton}>← 뒤로</Text>
+                    <Text style={[styles.backButton, { color: colors.primary }]}>← 뒤로</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>제외된 단어</Text>
+                <Text style={[styles.title, { color: colors.text }]}>제외된 단어</Text>
                 <View style={styles.placeholder} />
             </View>
 
             <View style={styles.countContainer}>
-                <Text style={styles.countText}>
+                <Text style={[styles.countText, { color: colors.textSecondary }]}>
                     총 {aExcludedWords.length}개 단어
                 </Text>
             </View>
@@ -109,7 +110,6 @@ export default function ExcludedWordsScreen(): React.JSX.Element
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
     },
     header: {
         flexDirection: 'row',
@@ -118,16 +118,13 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: colors.border,
     },
     backButton: {
         fontSize: 16,
-        color: colors.primary,
     },
     title: {
         fontSize: 18,
         fontWeight: '700',
-        color: colors.text,
     },
     placeholder: {
         width: 50,
@@ -138,7 +135,6 @@ const styles = StyleSheet.create({
     },
     countText: {
         fontSize: 14,
-        color: colors.textSecondary,
     },
     listContent: {
         paddingHorizontal: 20,
@@ -148,7 +144,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 16,
         marginBottom: 12,
@@ -164,7 +159,6 @@ const styles = StyleSheet.create({
     hanzi: {
         fontSize: 24,
         fontWeight: '700',
-        color: colors.text,
         marginRight: 8,
     },
     levelBadge: {
@@ -175,19 +169,15 @@ const styles = StyleSheet.create({
     levelText: {
         fontSize: 10,
         fontWeight: '600',
-        color: colors.background,
     },
     pinyin: {
         fontSize: 14,
-        color: colors.primary,
         marginBottom: 2,
     },
     meaning: {
         fontSize: 14,
-        color: colors.textSecondary,
     },
     restoreButton: {
-        backgroundColor: colors.primary,
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 8,
@@ -195,7 +185,6 @@ const styles = StyleSheet.create({
     restoreButtonText: {
         fontSize: 14,
         fontWeight: '600',
-        color: colors.text,
     },
     emptyContainer: {
         flex: 1,
@@ -210,12 +199,10 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 18,
         fontWeight: '600',
-        color: colors.text,
         marginBottom: 8,
     },
     emptySubtext: {
         fontSize: 14,
-        color: colors.textSecondary,
         textAlign: 'center',
     },
 });

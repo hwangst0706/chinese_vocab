@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
-import { colors, hskLevelColors } from '../constants/colors';
+import { useTheme, getHskLevelColor } from '../contexts/ThemeContext';
 import { useAppStore } from '../store';
 import { QuizQuestion } from '../types';
 import {
@@ -31,6 +31,7 @@ const QUIZ_COUNT = 10;
 export default function QuizScreen(): React.JSX.Element
 {
     const navigation = useNavigation<any>();
+    const { colors } = useTheme();
     const {
         settings,
         getQuizWords,
@@ -86,7 +87,7 @@ export default function QuizScreen(): React.JSX.Element
         return (
             <>
                 {szBefore}
-                <Text style={styles.highlightedWord}>{szHanzi}</Text>
+                <Text style={{ color: colors.accent, fontWeight: '700' }}>{szHanzi}</Text>
                 {szAfter}
             </>
         );
@@ -173,30 +174,32 @@ export default function QuizScreen(): React.JSX.Element
         initializeQuiz();
     };
 
-    const getOptionStyle = (nIndex: number): object =>
+    const getOptionStyle = (nIndex: number): object[] =>
     {
-        if (!bShowResult) return styles.option;
+        const baseStyle = [styles.option, { backgroundColor: colors.surface, borderColor: colors.surface }];
+
+        if (!bShowResult) return baseStyle;
 
         if (nIndex === stCurrentQuestion.nCorrectIndex)
         {
-            return [styles.option, styles.optionCorrect];
+            return [...baseStyle, { borderColor: colors.correct, backgroundColor: `${colors.correct}20` }];
         }
 
         if (nIndex === nSelectedOption && nIndex !== stCurrentQuestion.nCorrectIndex)
         {
-            return [styles.option, styles.optionWrong];
+            return [...baseStyle, { borderColor: colors.wrong, backgroundColor: `${colors.wrong}20` }];
         }
 
-        return [styles.option, styles.optionDisabled];
+        return [...baseStyle, styles.optionDisabled];
     };
 
     // 로딩 중
     if (aQuestions.length === 0)
     {
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <View style={styles.loadingContainer}>
-                    <Text style={styles.loadingText}>문제 준비 중...</Text>
+                    <Text style={[styles.loadingText, { color: colors.textSecondary }]}>문제 준비 중...</Text>
                 </View>
             </SafeAreaView>
         );
@@ -209,48 +212,48 @@ export default function QuizScreen(): React.JSX.Element
         const stTodayStats = getTodayStats();
 
         return (
-            <SafeAreaView style={styles.container}>
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
                 <View style={styles.resultContainer}>
                     <Text style={styles.resultEmoji}>
                         {nAccuracy >= 80 ? '🎉' : nAccuracy >= 50 ? '👍' : '💪'}
                     </Text>
-                    <Text style={styles.resultTitle}>학습 완료!</Text>
+                    <Text style={[styles.resultTitle, { color: colors.text }]}>학습 완료!</Text>
 
-                    <View style={styles.resultStats}>
+                    <View style={[styles.resultStats, { backgroundColor: colors.surface }]}>
                         <View style={styles.resultStatItem}>
-                            <Text style={styles.resultStatValue}>{nCorrectCount}</Text>
-                            <Text style={styles.resultStatLabel}>정답</Text>
+                            <Text style={[styles.resultStatValue, { color: colors.accent }]}>{nCorrectCount}</Text>
+                            <Text style={[styles.resultStatLabel, { color: colors.textSecondary }]}>정답</Text>
                         </View>
                         <View style={styles.resultStatItem}>
-                            <Text style={styles.resultStatValue}>
+                            <Text style={[styles.resultStatValue, { color: colors.accent }]}>
                                 {aQuestions.length - nCorrectCount}
                             </Text>
-                            <Text style={styles.resultStatLabel}>오답</Text>
+                            <Text style={[styles.resultStatLabel, { color: colors.textSecondary }]}>오답</Text>
                         </View>
                         <View style={styles.resultStatItem}>
-                            <Text style={styles.resultStatValue}>{nAccuracy}%</Text>
-                            <Text style={styles.resultStatLabel}>정답률</Text>
+                            <Text style={[styles.resultStatValue, { color: colors.accent }]}>{nAccuracy}%</Text>
+                            <Text style={[styles.resultStatLabel, { color: colors.textSecondary }]}>정답률</Text>
                         </View>
                     </View>
 
                     <View style={styles.todayProgress}>
-                        <Text style={styles.todayProgressText}>
+                        <Text style={[styles.todayProgressText, { color: colors.textSecondary }]}>
                             오늘 총 {stTodayStats.nQuestionsAnswered}문제 풀이
                         </Text>
                     </View>
 
                     <View style={styles.resultButtons}>
                         <TouchableOpacity
-                            style={styles.resultButtonSecondary}
+                            style={[styles.resultButtonSecondary, { backgroundColor: colors.surface }]}
                             onPress={handleFinish}
                         >
-                            <Text style={styles.resultButtonSecondaryText}>홈으로</Text>
+                            <Text style={[styles.resultButtonSecondaryText, { color: colors.text }]}>홈으로</Text>
                         </TouchableOpacity>
                         <TouchableOpacity
-                            style={styles.resultButtonPrimary}
+                            style={[styles.resultButtonPrimary, { backgroundColor: colors.primary }]}
                             onPress={handleRetry}
                         >
-                            <Text style={styles.resultButtonPrimaryText}>계속 학습</Text>
+                            <Text style={[styles.resultButtonPrimaryText, { color: colors.text }]}>계속 학습</Text>
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -260,29 +263,30 @@ export default function QuizScreen(): React.JSX.Element
 
     // 퀴즈 진행
     return (
-        <SafeAreaView style={styles.container}>
+        <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
             {/* 헤더 */}
             <View style={styles.header}>
                 <TouchableOpacity onPress={handleFinish}>
-                    <Text style={styles.closeButton}>✕</Text>
+                    <Text style={[styles.closeButton, { color: colors.textSecondary }]}>✕</Text>
                 </TouchableOpacity>
-                <View style={styles.progressIndicator}>
-                    <Text style={styles.progressText}>
+                <View style={[styles.progressIndicator, { backgroundColor: colors.surface }]}>
+                    <Text style={[styles.progressText, { color: colors.text }]}>
                         {nCurrentIndex + 1} / {aQuestions.length}
                     </Text>
                 </View>
-                <View style={styles.scoreContainer}>
-                    <Text style={styles.scoreText}>{nCorrectCount}점</Text>
+                <View style={[styles.scoreContainer, { backgroundColor: colors.accent }]}>
+                    <Text style={[styles.scoreText, { color: colors.background }]}>{nCorrectCount}점</Text>
                 </View>
             </View>
 
             {/* 진행 바 */}
-            <View style={styles.progressBar}>
+            <View style={[styles.progressBar, { backgroundColor: colors.surface }]}>
                 <View
                     style={[
                         styles.progressFill,
                         {
                             width: `${((nCurrentIndex + 1) / aQuestions.length) * 100}%`,
+                            backgroundColor: colors.primary,
                         },
                     ]}
                 />
@@ -296,19 +300,19 @@ export default function QuizScreen(): React.JSX.Element
                 <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
                     {/* 퀴즈 타입 */}
                     <View style={styles.quizTypeContainer}>
-                    <Text style={styles.quizType}>
+                    <Text style={[styles.quizType, { color: colors.textSecondary }]}>
                         {getQuizTypeName(stCurrentQuestion.type)}
                     </Text>
                     <View
                         style={[
                             styles.levelBadge,
-                            { borderColor: hskLevelColors[stCurrentQuestion.stWord.nLevel] },
+                            { borderColor: getHskLevelColor(stCurrentQuestion.stWord.nLevel, colors) },
                         ]}
                     >
                         <Text
                             style={[
                                 styles.levelBadgeText,
-                                { color: hskLevelColors[stCurrentQuestion.stWord.nLevel] },
+                                { color: getHskLevelColor(stCurrentQuestion.stWord.nLevel, colors) },
                             ]}
                         >
                             HSK {stCurrentQuestion.stWord.nLevel}
@@ -318,12 +322,12 @@ export default function QuizScreen(): React.JSX.Element
 
                 {/* 문제 */}
                 <View style={styles.questionContainer}>
-                    <Text style={styles.questionDisplay}>
+                    <Text style={[styles.questionDisplay, { color: colors.text }]}>
                         {getQuestionDisplay(stCurrentQuestion)}
                     </Text>
                     {stCurrentQuestion.type !== 'meaning_to_hanzi' &&
                         stCurrentQuestion.type !== 'hanzi_to_pinyin' && (
-                        <Text style={styles.questionPinyin}>
+                        <Text style={[styles.questionPinyin, { color: colors.textSecondary }]}>
                             {(settings.bShowPinyin || bShowResult)
                                 ? stCurrentQuestion.stWord.szPinyin
                                 : ''}
@@ -343,13 +347,14 @@ export default function QuizScreen(): React.JSX.Element
                             <Text
                                 style={[
                                     styles.optionText,
+                                    { color: colors.text },
                                     bShowResult &&
                                         nIndex === stCurrentQuestion.nCorrectIndex &&
-                                        styles.optionTextCorrect,
+                                        { color: colors.correct, fontWeight: '600' },
                                     bShowResult &&
                                         nIndex === nSelectedOption &&
                                         nIndex !== stCurrentQuestion.nCorrectIndex &&
-                                        styles.optionTextWrong,
+                                        { color: colors.wrong },
                                 ]}
                             >
                                 {szOption}
@@ -365,8 +370,8 @@ export default function QuizScreen(): React.JSX.Element
                             style={[
                                 styles.feedbackText,
                                 nSelectedOption === stCurrentQuestion.nCorrectIndex
-                                    ? styles.feedbackCorrect
-                                    : styles.feedbackWrong,
+                                    ? { color: colors.correct }
+                                    : { color: colors.wrong },
                             ]}
                         >
                             {nSelectedOption === stCurrentQuestion.nCorrectIndex
@@ -375,17 +380,17 @@ export default function QuizScreen(): React.JSX.Element
                         </Text>
 
                         {stCurrentQuestion.stWord.szExample && (
-                            <View style={styles.exampleContainer}>
-                                <Text style={styles.exampleText}>
+                            <View style={[styles.exampleContainer, { backgroundColor: colors.surface }]}>
+                                <Text style={[styles.exampleText, { color: colors.text }]}>
                                     {renderHighlightedExample(
                                         stCurrentQuestion.stWord.szExample,
                                         stCurrentQuestion.stWord.szHanzi
                                     )}
                                 </Text>
-                                <Text style={styles.examplePinyin}>
+                                <Text style={[styles.examplePinyin, { color: colors.primary }]}>
                                     {stCurrentQuestion.stWord.szExamplePinyin}
                                 </Text>
-                                <Text style={styles.exampleMeaning}>
+                                <Text style={[styles.exampleMeaning, { color: colors.textSecondary }]}>
                                     {stCurrentQuestion.stWord.szExampleMeaning}
                                 </Text>
                             </View>
@@ -395,22 +400,23 @@ export default function QuizScreen(): React.JSX.Element
                         <TouchableOpacity
                             style={[
                                 styles.excludeButton,
+                                { backgroundColor: colors.surfaceLight },
                                 isWordExcluded(stCurrentQuestion.stWord.szId) &&
-                                    styles.excludeButtonActive,
+                                    { backgroundColor: `${colors.wrong}30` },
                             ]}
                             onPress={() =>
                                 toggleWordExclusion(stCurrentQuestion.stWord.szId)
                             }
                         >
-                            <Text style={styles.excludeButtonText}>
+                            <Text style={[styles.excludeButtonText, { color: colors.textSecondary }]}>
                                 {isWordExcluded(stCurrentQuestion.stWord.szId)
                                     ? '🚫 퀴즈 제외됨 (탭해서 해제)'
                                     : '이 단어 퀴즈에서 제외'}
                             </Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-                            <Text style={styles.nextButtonText}>
+                        <TouchableOpacity style={[styles.nextButton, { backgroundColor: colors.primary }]} onPress={handleNext}>
+                            <Text style={[styles.nextButtonText, { color: colors.text }]}>
                                 {nCurrentIndex < aQuestions.length - 1 ? '다음' : '결과 보기'}
                             </Text>
                         </TouchableOpacity>
@@ -425,7 +431,6 @@ export default function QuizScreen(): React.JSX.Element
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: colors.background,
     },
     loadingContainer: {
         flex: 1,
@@ -434,7 +439,6 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         fontSize: 18,
-        color: colors.textSecondary,
     },
     header: {
         flexDirection: 'row',
@@ -445,11 +449,9 @@ const styles = StyleSheet.create({
     },
     closeButton: {
         fontSize: 24,
-        color: colors.textSecondary,
         padding: 8,
     },
     progressIndicator: {
-        backgroundColor: colors.surface,
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
@@ -457,10 +459,8 @@ const styles = StyleSheet.create({
     progressText: {
         fontSize: 14,
         fontWeight: '600',
-        color: colors.text,
     },
     scoreContainer: {
-        backgroundColor: colors.accent,
         paddingHorizontal: 16,
         paddingVertical: 8,
         borderRadius: 20,
@@ -468,15 +468,12 @@ const styles = StyleSheet.create({
     scoreText: {
         fontSize: 14,
         fontWeight: '700',
-        color: colors.background,
     },
     progressBar: {
         height: 4,
-        backgroundColor: colors.surface,
     },
     progressFill: {
         height: '100%',
-        backgroundColor: colors.primary,
     },
     scrollView: {
         flex: 1,
@@ -496,7 +493,6 @@ const styles = StyleSheet.create({
     },
     quizType: {
         fontSize: 14,
-        color: colors.textSecondary,
         marginRight: 12,
     },
     levelBadge: {
@@ -516,46 +512,26 @@ const styles = StyleSheet.create({
     questionDisplay: {
         fontSize: 56,
         fontWeight: '700',
-        color: colors.text,
         marginBottom: 8,
     },
     questionPinyin: {
         fontSize: 20,
-        color: colors.textSecondary,
         height: 28,
     },
     optionsContainer: {
         gap: 12,
     },
     option: {
-        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 18,
         borderWidth: 2,
-        borderColor: colors.surface,
-    },
-    optionCorrect: {
-        borderColor: colors.correct,
-        backgroundColor: `${colors.correct}20`,
-    },
-    optionWrong: {
-        borderColor: colors.wrong,
-        backgroundColor: `${colors.wrong}20`,
     },
     optionDisabled: {
         opacity: 0.5,
     },
     optionText: {
         fontSize: 18,
-        color: colors.text,
         textAlign: 'center',
-    },
-    optionTextCorrect: {
-        color: colors.correct,
-        fontWeight: '600',
-    },
-    optionTextWrong: {
-        color: colors.wrong,
     },
     feedbackContainer: {
         marginTop: 24,
@@ -566,14 +542,7 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginBottom: 16,
     },
-    feedbackCorrect: {
-        color: colors.correct,
-    },
-    feedbackWrong: {
-        color: colors.wrong,
-    },
     exampleContainer: {
-        backgroundColor: colors.surface,
         borderRadius: 12,
         padding: 16,
         width: '100%',
@@ -581,40 +550,27 @@ const styles = StyleSheet.create({
     },
     exampleText: {
         fontSize: 16,
-        color: colors.text,
         marginBottom: 4,
         lineHeight: 24,
     },
-    highlightedWord: {
-        color: colors.accent,
-        fontWeight: '700',
-    },
     examplePinyin: {
         fontSize: 14,
-        color: colors.primary,
         marginBottom: 4,
     },
     exampleMeaning: {
         fontSize: 14,
-        color: colors.textSecondary,
     },
     excludeButton: {
-        backgroundColor: colors.surfaceLight,
         borderRadius: 8,
         paddingVertical: 10,
         paddingHorizontal: 16,
         marginBottom: 16,
     },
-    excludeButtonActive: {
-        backgroundColor: `${colors.wrong}30`,
-    },
     excludeButtonText: {
         fontSize: 14,
-        color: colors.textSecondary,
         textAlign: 'center',
     },
     nextButton: {
-        backgroundColor: colors.primary,
         borderRadius: 12,
         paddingVertical: 16,
         paddingHorizontal: 48,
@@ -622,7 +578,6 @@ const styles = StyleSheet.create({
     nextButtonText: {
         fontSize: 18,
         fontWeight: '700',
-        color: colors.text,
     },
     // 결과 화면
     resultContainer: {
@@ -638,14 +593,12 @@ const styles = StyleSheet.create({
     resultTitle: {
         fontSize: 32,
         fontWeight: '700',
-        color: colors.text,
         marginBottom: 32,
     },
     resultStats: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         width: '100%',
-        backgroundColor: colors.surface,
         borderRadius: 16,
         padding: 24,
         marginBottom: 24,
@@ -656,11 +609,9 @@ const styles = StyleSheet.create({
     resultStatValue: {
         fontSize: 36,
         fontWeight: '700',
-        color: colors.accent,
     },
     resultStatLabel: {
         fontSize: 14,
-        color: colors.textSecondary,
         marginTop: 4,
     },
     todayProgress: {
@@ -668,14 +619,12 @@ const styles = StyleSheet.create({
     },
     todayProgressText: {
         fontSize: 16,
-        color: colors.textSecondary,
     },
     resultButtons: {
         flexDirection: 'row',
         gap: 16,
     },
     resultButtonSecondary: {
-        backgroundColor: colors.surface,
         borderRadius: 12,
         paddingVertical: 16,
         paddingHorizontal: 32,
@@ -683,10 +632,8 @@ const styles = StyleSheet.create({
     resultButtonSecondaryText: {
         fontSize: 16,
         fontWeight: '600',
-        color: colors.text,
     },
     resultButtonPrimary: {
-        backgroundColor: colors.primary,
         borderRadius: 12,
         paddingVertical: 16,
         paddingHorizontal: 32,
@@ -694,6 +641,5 @@ const styles = StyleSheet.create({
     resultButtonPrimaryText: {
         fontSize: 16,
         fontWeight: '700',
-        color: colors.text,
     },
 });
