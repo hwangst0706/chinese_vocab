@@ -10,6 +10,7 @@ import {
     StyleSheet,
     TouchableOpacity,
     Animated,
+    ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -287,9 +288,14 @@ export default function QuizScreen(): React.JSX.Element
                 />
             </View>
 
-            <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
-                {/* 퀴즈 타입 */}
-                <View style={styles.quizTypeContainer}>
+            <ScrollView
+                style={styles.scrollView}
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
+                <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+                    {/* 퀴즈 타입 */}
+                    <View style={styles.quizTypeContainer}>
                     <Text style={styles.quizType}>
                         {getQuizTypeName(stCurrentQuestion.type)}
                     </Text>
@@ -409,8 +415,9 @@ export default function QuizScreen(): React.JSX.Element
                             </Text>
                         </TouchableOpacity>
                     </View>
-                )}
-            </Animated.View>
+                    )}
+                </Animated.View>
+            </ScrollView>
         </SafeAreaView>
     );
 }
@@ -471,9 +478,15 @@ const styles = StyleSheet.create({
         height: '100%',
         backgroundColor: colors.primary,
     },
-    content: {
+    scrollView: {
         flex: 1,
+    },
+    scrollContent: {
+        flexGrow: 1,
+    },
+    content: {
         padding: 20,
+        paddingBottom: 40,
     },
     quizTypeContainer: {
         flexDirection: 'row',
