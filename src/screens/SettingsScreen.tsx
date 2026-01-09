@@ -91,7 +91,7 @@ export default function SettingsScreen(): React.JSX.Element
         );
     };
 
-    const aAllLevels: HskLevel[] = [1, 2, 3];
+    const aAllLevels: HskLevel[] = [1, 2, 3, 4];
 
     const aThemeOptions: { mode: ThemeMode; label: string; icon: string }[] = [
         { mode: 'light', label: '라이트', icon: '☀️' },
@@ -313,9 +313,9 @@ export default function SettingsScreen(): React.JSX.Element
 
                 {/* 앱 정보 */}
                 <View style={styles.appInfo}>
-                    <Text style={[styles.appInfoText, { color: colors.textMuted }]}>HSK 단어 암기 v1.3.0</Text>
+                    <Text style={[styles.appInfoText, { color: colors.textMuted }]}>HSK 단어 암기 v1.4.0</Text>
                     <Text style={[styles.appInfoText, { color: colors.textMuted }]}>
-                        HSK 1~3급 총 {levelWordCounts[1] + levelWordCounts[2] + levelWordCounts[3]}개 단어
+                        HSK 1~4급 총 {levelWordCounts[1] + levelWordCounts[2] + levelWordCounts[3] + levelWordCounts[4]}개 단어
                     </Text>
                 </View>
             </ScrollView>
