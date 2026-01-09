@@ -67,6 +67,30 @@ export default function QuizScreen(): React.JSX.Element
 
     const stCurrentQuestion = aQuestions[nCurrentIndex];
 
+    // 예문에서 학습 단어 하이라이트
+    const renderHighlightedExample = (
+        szExample: string,
+        szHanzi: string
+    ): React.ReactNode =>
+    {
+        const nIndex = szExample.indexOf(szHanzi);
+        if (nIndex === -1)
+        {
+            return szExample;
+        }
+
+        const szBefore = szExample.slice(0, nIndex);
+        const szAfter = szExample.slice(nIndex + szHanzi.length);
+
+        return (
+            <>
+                {szBefore}
+                <Text style={styles.highlightedWord}>{szHanzi}</Text>
+                {szAfter}
+            </>
+        );
+    };
+
     const handleSelectOption = (nIndex: number): void =>
     {
         if (bShowResult) return;
@@ -344,7 +368,13 @@ export default function QuizScreen(): React.JSX.Element
                         {stCurrentQuestion.stWord.szExample && (
                             <View style={styles.exampleContainer}>
                                 <Text style={styles.exampleText}>
-                                    {stCurrentQuestion.stWord.szExample}
+                                    {renderHighlightedExample(
+                                        stCurrentQuestion.stWord.szExample,
+                                        stCurrentQuestion.stWord.szHanzi
+                                    )}
+                                </Text>
+                                <Text style={styles.examplePinyin}>
+                                    {stCurrentQuestion.stWord.szExamplePinyin}
                                 </Text>
                                 <Text style={styles.exampleMeaning}>
                                     {stCurrentQuestion.stWord.szExampleMeaning}
@@ -536,6 +566,16 @@ const styles = StyleSheet.create({
     exampleText: {
         fontSize: 16,
         color: colors.text,
+        marginBottom: 4,
+        lineHeight: 24,
+    },
+    highlightedWord: {
+        color: colors.accent,
+        fontWeight: '700',
+    },
+    examplePinyin: {
+        fontSize: 14,
+        color: colors.primary,
         marginBottom: 4,
     },
     exampleMeaning: {

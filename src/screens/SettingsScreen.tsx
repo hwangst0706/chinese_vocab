@@ -89,7 +89,7 @@ export default function SettingsScreen(): React.JSX.Element
         );
     };
 
-    const aAllLevels: HskLevel[] = [1, 2];
+    const aAllLevels: HskLevel[] = [1, 2, 3];
 
     return (
         <SafeAreaView style={styles.container}>
@@ -230,9 +230,9 @@ export default function SettingsScreen(): React.JSX.Element
 
                 {/* 앱 정보 */}
                 <View style={styles.appInfo}>
-                    <Text style={styles.appInfoText}>HSK 단어 암기 v1.0.0</Text>
+                    <Text style={styles.appInfoText}>HSK 단어 암기 v1.1.0</Text>
                     <Text style={styles.appInfoText}>
-                        HSK 1~2급 총 {levelWordCounts[1] + levelWordCounts[2]}개 단어
+                        HSK 1~3급 총 {levelWordCounts[1] + levelWordCounts[2] + levelWordCounts[3]}개 단어
                     </Text>
                 </View>
             </ScrollView>
