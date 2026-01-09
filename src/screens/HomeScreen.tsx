@@ -9,9 +9,9 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    SafeAreaView,
     ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors, hskLevelColors } from '../constants/colors';
 import { useAppStore } from '../store';

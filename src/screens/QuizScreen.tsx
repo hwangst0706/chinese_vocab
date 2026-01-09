@@ -9,9 +9,9 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    SafeAreaView,
     Animated,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';

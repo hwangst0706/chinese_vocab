@@ -8,9 +8,9 @@ import {
     View,
     Text,
     StyleSheet,
-    SafeAreaView,
     ScrollView,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, hskLevelColors } from '../constants/colors';
 import { useAppStore } from '../store';
 import { HskLevel } from '../types';

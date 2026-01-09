@@ -19,23 +19,50 @@ function generateOptions(
 ): { aOptions: string[]; nCorrectIndex: number }
 {
     const szCorrectValue = stCorrectWord[szField];
+    const nCharCount = stCorrectWord.szHanzi.length;
 
-    // 같은 레벨 단어에서 오답 선택지 추출
+    // 한자 또는 병음 선택지일 경우 글자수(음절수)가 같은 단어만 필터링
+    const bFilterByCharCount = szField === 'szHanzi' || szField === 'szPinyin';
+
+    // 같은 레벨 + 같은 글자수 단어에서 오답 선택지 추출
     const aSameLevelWords = allWords.filter(
-        (w) => w.nLevel === stCorrectWord.nLevel && w.szId !== stCorrectWord.szId
+        (w) =>
+            w.nLevel === stCorrectWord.nLevel &&
+            w.szId !== stCorrectWord.szId &&
+            (!bFilterByCharCount || w.szHanzi.length === nCharCount)
     );
 
-    // 다른 레벨 단어 (부족할 경우 대비)
+    // 다른 레벨 + 같은 글자수 단어 (부족할 경우 대비)
     const aOtherWords = allWords.filter(
-        (w) => w.nLevel !== stCorrectWord.nLevel && w.szId !== stCorrectWord.szId
+        (w) =>
+            w.nLevel !== stCorrectWord.nLevel &&
+            w.szId !== stCorrectWord.szId &&
+            (!bFilterByCharCount || w.szHanzi.length === nCharCount)
     );
 
     // 오답 후보 셔플
-    const aWrongCandidates = [...aSameLevelWords, ...aOtherWords]
+    let aWrongCandidates = [...aSameLevelWords, ...aOtherWords]
         .sort(() => Math.random() - 0.5)
         .filter((w) => w[szField] !== szCorrectValue)
         .slice(0, nCount - 1)
         .map((w) => w[szField]);
+
+    // 같은 글자수 단어가 부족할 경우 다른 글자수도 허용
+    if (bFilterByCharCount && aWrongCandidates.length < nCount - 1)
+    {
+        const aFallbackWords = allWords
+            .filter(
+                (w) =>
+                    w.szId !== stCorrectWord.szId &&
+                    w[szField] !== szCorrectValue &&
+                    !aWrongCandidates.includes(w[szField])
+            )
+            .sort(() => Math.random() - 0.5)
+            .slice(0, nCount - 1 - aWrongCandidates.length)
+            .map((w) => w[szField]);
+
+        aWrongCandidates = [...aWrongCandidates, ...aFallbackWords];
+    }
 
     // 선택지 배열 생성 및 셔플
     const aOptions = [szCorrectValue, ...aWrongCandidates].sort(
