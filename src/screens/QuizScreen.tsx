@@ -3,7 +3,7 @@
  * @brief 퀴즈 화면 - 3가지 퀴즈 타입
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     View,
     Text,
@@ -11,6 +11,7 @@ import {
     TouchableOpacity,
     Animated,
     ScrollView,
+    Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -27,6 +28,136 @@ import {
 } from '../utils/quiz';
 
 const QUIZ_COUNT = 10;
+
+// 애니메이션 버튼 컴포넌트
+interface AnimatedOptionButtonProps
+{
+    szOption: string;
+    nIndex: number;
+    bIsCorrect: boolean;
+    bIsSelected: boolean;
+    bShowResult: boolean;
+    colors: any;
+    onPress: () => void;
+}
+
+function AnimatedOptionButton({
+    szOption,
+    nIndex,
+    bIsCorrect,
+    bIsSelected,
+    bShowResult,
+    colors,
+    onPress,
+}: AnimatedOptionButtonProps): React.JSX.Element
+{
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const shakeAnim = useRef(new Animated.Value(0)).current;
+
+    const handlePressIn = (): void =>
+    {
+        Animated.spring(scaleAnim, {
+            toValue: 0.95,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const handlePressOut = (): void =>
+    {
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            friction: 3,
+            tension: 100,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    // 정답/오답 피드백 애니메이션
+    useEffect(() =>
+    {
+        if (bShowResult && bIsSelected)
+        {
+            if (bIsCorrect)
+            {
+                // 정답: 바운스 효과
+                Animated.sequence([
+                    Animated.timing(scaleAnim, {
+                        toValue: 1.05,
+                        duration: 100,
+                        useNativeDriver: true,
+                    }),
+                    Animated.spring(scaleAnim, {
+                        toValue: 1,
+                        friction: 3,
+                        tension: 100,
+                        useNativeDriver: true,
+                    }),
+                ]).start();
+            }
+            else
+            {
+                // 오답: 쉐이크 효과
+                Animated.sequence([
+                    Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+                    Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+                    Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+                    Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+                    Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+                ]).start();
+            }
+        }
+    }, [bShowResult, bIsSelected, bIsCorrect]);
+
+    const getOptionStyle = (): object[] =>
+    {
+        const baseStyle = [styles.option, { backgroundColor: colors.surface, borderColor: colors.surface }];
+
+        if (!bShowResult) return baseStyle;
+
+        if (bIsCorrect)
+        {
+            return [...baseStyle, { borderColor: colors.correct, backgroundColor: `${colors.correct}20` }];
+        }
+
+        if (bIsSelected && !bIsCorrect)
+        {
+            return [...baseStyle, { borderColor: colors.wrong, backgroundColor: `${colors.wrong}20` }];
+        }
+
+        return [...baseStyle, styles.optionDisabled];
+    };
+
+    return (
+        <Animated.View
+            style={{
+                transform: [
+                    { scale: scaleAnim },
+                    { translateX: shakeAnim },
+                ],
+            }}
+        >
+            <TouchableOpacity
+                style={getOptionStyle()}
+                onPress={onPress}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                disabled={bShowResult}
+                activeOpacity={1}
+            >
+                <Text
+                    style={[
+                        styles.optionText,
+                        { color: colors.text },
+                        bShowResult && bIsCorrect && { color: colors.correct, fontWeight: '600' },
+                        bShowResult && bIsSelected && !bIsCorrect && { color: colors.wrong },
+                    ]}
+                >
+                    {szOption}
+                </Text>
+            </TouchableOpacity>
+        </Animated.View>
+    );
+}
 
 export default function QuizScreen(): React.JSX.Element
 {
@@ -49,11 +180,58 @@ export default function QuizScreen(): React.JSX.Element
     const [bQuizComplete, setQuizComplete] = useState(false);
 
     const [fadeAnim] = useState(new Animated.Value(1));
+    const progressAnim = useRef(new Animated.Value(0)).current;
+    const feedbackAnim = useRef(new Animated.Value(0)).current;
+    const resultScaleAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() =>
     {
         initializeQuiz();
     }, []);
+
+    // 프로그레스 바 애니메이션
+    useEffect(() =>
+    {
+        if (aQuestions.length > 0)
+        {
+            Animated.timing(progressAnim, {
+                toValue: (nCurrentIndex + 1) / aQuestions.length,
+                duration: 300,
+                easing: Easing.out(Easing.cubic),
+                useNativeDriver: false,
+            }).start();
+        }
+    }, [nCurrentIndex, aQuestions.length]);
+
+    // 피드백 슬라이드 애니메이션
+    useEffect(() =>
+    {
+        if (bShowResult)
+        {
+            feedbackAnim.setValue(0);
+            Animated.spring(feedbackAnim, {
+                toValue: 1,
+                friction: 8,
+                tension: 40,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [bShowResult]);
+
+    // 결과 화면 애니메이션
+    useEffect(() =>
+    {
+        if (bQuizComplete)
+        {
+            resultScaleAnim.setValue(0);
+            Animated.spring(resultScaleAnim, {
+                toValue: 1,
+                friction: 6,
+                tension: 40,
+                useNativeDriver: true,
+            }).start();
+        }
+    }, [bQuizComplete]);
 
     const initializeQuiz = (): void =>
     {
@@ -65,6 +243,7 @@ export default function QuizScreen(): React.JSX.Element
         setShowResult(false);
         setCorrectCount(0);
         setQuizComplete(false);
+        progressAnim.setValue(0);
     };
 
     const stCurrentQuestion = aQuestions[nCurrentIndex];
@@ -174,25 +353,6 @@ export default function QuizScreen(): React.JSX.Element
         initializeQuiz();
     };
 
-    const getOptionStyle = (nIndex: number): object[] =>
-    {
-        const baseStyle = [styles.option, { backgroundColor: colors.surface, borderColor: colors.surface }];
-
-        if (!bShowResult) return baseStyle;
-
-        if (nIndex === stCurrentQuestion.nCorrectIndex)
-        {
-            return [...baseStyle, { borderColor: colors.correct, backgroundColor: `${colors.correct}20` }];
-        }
-
-        if (nIndex === nSelectedOption && nIndex !== stCurrentQuestion.nCorrectIndex)
-        {
-            return [...baseStyle, { borderColor: colors.wrong, backgroundColor: `${colors.wrong}20` }];
-        }
-
-        return [...baseStyle, styles.optionDisabled];
-    };
-
     // 로딩 중
     if (aQuestions.length === 0)
     {
@@ -213,7 +373,22 @@ export default function QuizScreen(): React.JSX.Element
 
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-                <View style={styles.resultContainer}>
+                <Animated.View
+                    style={[
+                        styles.resultContainer,
+                        {
+                            opacity: resultScaleAnim,
+                            transform: [
+                                {
+                                    scale: resultScaleAnim.interpolate({
+                                        inputRange: [0, 1],
+                                        outputRange: [0.8, 1],
+                                    }),
+                                },
+                            ],
+                        },
+                    ]}
+                >
                     <Text style={styles.resultEmoji}>
                         {nAccuracy >= 80 ? '🎉' : nAccuracy >= 50 ? '👍' : '💪'}
                     </Text>
@@ -256,7 +431,7 @@ export default function QuizScreen(): React.JSX.Element
                             <Text style={[styles.resultButtonPrimaryText, { color: colors.text }]}>계속 학습</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </Animated.View>
             </SafeAreaView>
         );
     }
@@ -279,13 +454,16 @@ export default function QuizScreen(): React.JSX.Element
                 </View>
             </View>
 
-            {/* 진행 바 */}
+            {/* 진행 바 (애니메이션) */}
             <View style={[styles.progressBar, { backgroundColor: colors.surface }]}>
-                <View
+                <Animated.View
                     style={[
                         styles.progressFill,
                         {
-                            width: `${((nCurrentIndex + 1) / aQuestions.length) * 100}%`,
+                            width: progressAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0%', '100%'],
+                            }),
                             backgroundColor: colors.primary,
                         },
                     ]}
@@ -335,37 +513,40 @@ export default function QuizScreen(): React.JSX.Element
                     )}
                 </View>
 
-                {/* 선택지 */}
+                {/* 선택지 (애니메이션 버튼) */}
                 <View style={styles.optionsContainer}>
                     {stCurrentQuestion.aOptions.map((szOption, nIndex) => (
-                        <TouchableOpacity
-                            key={nIndex}
-                            style={getOptionStyle(nIndex)}
+                        <AnimatedOptionButton
+                            key={`${nCurrentIndex}-${nIndex}`}
+                            szOption={szOption}
+                            nIndex={nIndex}
+                            bIsCorrect={nIndex === stCurrentQuestion.nCorrectIndex}
+                            bIsSelected={nIndex === nSelectedOption}
+                            bShowResult={bShowResult}
+                            colors={colors}
                             onPress={() => handleSelectOption(nIndex)}
-                            disabled={bShowResult}
-                        >
-                            <Text
-                                style={[
-                                    styles.optionText,
-                                    { color: colors.text },
-                                    bShowResult &&
-                                        nIndex === stCurrentQuestion.nCorrectIndex &&
-                                        { color: colors.correct, fontWeight: '600' },
-                                    bShowResult &&
-                                        nIndex === nSelectedOption &&
-                                        nIndex !== stCurrentQuestion.nCorrectIndex &&
-                                        { color: colors.wrong },
-                                ]}
-                            >
-                                {szOption}
-                            </Text>
-                        </TouchableOpacity>
+                        />
                     ))}
                 </View>
 
-                {/* 결과 & 다음 버튼 */}
+                {/* 결과 & 다음 버튼 (슬라이드업 애니메이션) */}
                 {bShowResult && (
-                    <View style={styles.feedbackContainer}>
+                    <Animated.View
+                        style={[
+                            styles.feedbackContainer,
+                            {
+                                opacity: feedbackAnim,
+                                transform: [
+                                    {
+                                        translateY: feedbackAnim.interpolate({
+                                            inputRange: [0, 1],
+                                            outputRange: [30, 0],
+                                        }),
+                                    },
+                                ],
+                            },
+                        ]}
+                    >
                         <Text
                             style={[
                                 styles.feedbackText,
@@ -420,7 +601,7 @@ export default function QuizScreen(): React.JSX.Element
                                 {nCurrentIndex < aQuestions.length - 1 ? '다음' : '결과 보기'}
                             </Text>
                         </TouchableOpacity>
-                    </View>
+                    </Animated.View>
                     )}
                 </Animated.View>
             </ScrollView>
