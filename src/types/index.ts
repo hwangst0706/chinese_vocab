@@ -54,6 +54,7 @@ export interface Settings
     bSoundEnabled: boolean;
     bVibrationEnabled: boolean;
     bNotificationEnabled: boolean;
+    bShowPinyin: boolean;     // 퀴즈 중 병음 표시 (병음 퀴즈 제외)
 }
 
 export interface LevelStats

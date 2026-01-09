@@ -315,9 +315,12 @@ export default function QuizScreen(): React.JSX.Element
                     <Text style={styles.questionDisplay}>
                         {getQuestionDisplay(stCurrentQuestion)}
                     </Text>
-                    {stCurrentQuestion.type !== 'meaning_to_hanzi' && (
+                    {stCurrentQuestion.type !== 'meaning_to_hanzi' &&
+                        stCurrentQuestion.type !== 'hanzi_to_pinyin' && (
                         <Text style={styles.questionPinyin}>
-                            {bShowResult ? stCurrentQuestion.stWord.szPinyin : ''}
+                            {(settings.bShowPinyin || bShowResult)
+                                ? stCurrentQuestion.stWord.szPinyin
+                                : ''}
                         </Text>
                     )}
                 </View>

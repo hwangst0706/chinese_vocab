@@ -15,6 +15,7 @@ import {
     Alert,
     TextInput,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { colors, hskLevelColors } from '../constants/colors';
 import { useAppStore } from '../store';
 import { HskLevel } from '../types';
@@ -22,7 +23,8 @@ import { levelWordCounts } from '../data';
 
 export default function SettingsScreen(): React.JSX.Element
 {
-    const { settings, updateSettings, resetAllProgress } = useAppStore();
+    const navigation = useNavigation<any>();
+    const { settings, updateSettings, resetAllProgress, getExcludedWordIds, getMostWrongWords } = useAppStore();
 
     const [szDailyGoal, setDailyGoal] = useState(settings.nDailyGoal.toString());
 
@@ -217,6 +219,70 @@ export default function SettingsScreen(): React.JSX.Element
                     </View>
                 </View>
 
+                {/* 퀴즈 설정 */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>퀴즈 설정</Text>
+
+                    <View style={styles.settingRow}>
+                        <View style={styles.settingInfo}>
+                            <Text style={styles.label}>병음 표시</Text>
+                            <Text style={styles.settingDescription}>
+                                퀴즈에서 한자의 병음을 표시합니다{'\n'}(병음 퀴즈 제외, 예문은 항상 표시)
+                            </Text>
+                        </View>
+                        <Switch
+                            value={settings.bShowPinyin}
+                            onValueChange={(bValue) =>
+                                updateSettings({ bShowPinyin: bValue })
+                            }
+                            trackColor={{
+                                false: colors.surfaceLight,
+                                true: colors.primary,
+                            }}
+                            thumbColor={colors.text}
+                        />
+                    </View>
+                </View>
+
+                {/* 학습 관리 */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>학습 관리</Text>
+
+                    <TouchableOpacity
+                        style={styles.menuButton}
+                        onPress={() => navigation.navigate('ExcludedWords')}
+                    >
+                        <View style={styles.menuButtonInfo}>
+                            <Text style={styles.menuButtonText}>제외된 단어</Text>
+                            <Text style={styles.menuButtonDescription}>
+                                퀴즈에서 제외한 단어를 확인하고 복원합니다
+                            </Text>
+                        </View>
+                        <View style={styles.menuButtonBadge}>
+                            <Text style={styles.menuButtonBadgeText}>
+                                {getExcludedWordIds().length}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.menuButton}
+                        onPress={() => navigation.navigate('MostWrongWords')}
+                    >
+                        <View style={styles.menuButtonInfo}>
+                            <Text style={styles.menuButtonText}>오답 단어</Text>
+                            <Text style={styles.menuButtonDescription}>
+                                가장 많이 틀린 단어를 확인합니다
+                            </Text>
+                        </View>
+                        <View style={styles.menuButtonBadge}>
+                            <Text style={styles.menuButtonBadgeText}>
+                                {getMostWrongWords().length}
+                            </Text>
+                        </View>
+                    </TouchableOpacity>
+                </View>
+
                 {/* 데이터 관리 */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>데이터 관리</Text>
@@ -351,6 +417,51 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
+    },
+    settingInfo: {
+        flex: 1,
+        marginRight: 16,
+    },
+    settingDescription: {
+        fontSize: 12,
+        color: colors.textMuted,
+        marginTop: 4,
+        lineHeight: 16,
+    },
+    menuButton: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: colors.surfaceLight,
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+    },
+    menuButtonInfo: {
+        flex: 1,
+    },
+    menuButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: colors.text,
+        marginBottom: 4,
+    },
+    menuButtonDescription: {
+        fontSize: 12,
+        color: colors.textSecondary,
+    },
+    menuButtonBadge: {
+        backgroundColor: colors.primary,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        minWidth: 32,
+        alignItems: 'center',
+    },
+    menuButtonBadgeText: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: colors.text,
     },
     dangerButton: {
         backgroundColor: colors.wrong,

@@ -13,6 +13,8 @@ import HomeScreen from '../screens/HomeScreen';
 import QuizScreen from '../screens/QuizScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import StatsScreen from '../screens/StatsScreen';
+import ExcludedWordsScreen from '../screens/ExcludedWordsScreen';
+import MostWrongWordsScreen from '../screens/MostWrongWordsScreen';
 import { colors } from '../constants/colors';
 
 const Stack = createNativeStackNavigator();
@@ -102,6 +104,8 @@ export default function AppNavigator(): React.JSX.Element
                     component={QuizScreen}
                     options={{ gestureEnabled: false }}
                 />
+                <Stack.Screen name="ExcludedWords" component={ExcludedWordsScreen} />
+                <Stack.Screen name="MostWrongWords" component={MostWrongWordsScreen} />
             </Stack.Navigator>
         </NavigationContainer>
     );

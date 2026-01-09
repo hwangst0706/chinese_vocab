@@ -67,6 +67,12 @@ interface AppState
 
     // 단어 제외 여부 확인
     isWordExcluded: (szWordId: string) => boolean;
+
+    // 가장 많이 틀린 단어 목록 (오답 횟수 기준 정렬)
+    getMostWrongWords: () => WordProgress[];
+
+    // 제외된 단어 ID 목록
+    getExcludedWordIds: () => string[];
 }
 
 const getDateKey = (): string =>
@@ -96,6 +102,7 @@ export const useAppStore = create<AppState>()(
                 bSoundEnabled: true,
                 bVibrationEnabled: true,
                 bNotificationEnabled: true,
+                bShowPinyin: true,
             },
 
             aExcludedWords: [],
@@ -323,6 +330,20 @@ export const useAppStore = create<AppState>()(
             {
                 const { aExcludedWords } = get();
                 return aExcludedWords.includes(szWordId);
+            },
+
+            getMostWrongWords: () =>
+            {
+                const { wordProgress } = get();
+                return Object.values(wordProgress)
+                    .filter((wp) => wp.nWrongCount > 0)
+                    .sort((a, b) => b.nWrongCount - a.nWrongCount);
+            },
+
+            getExcludedWordIds: () =>
+            {
+                const { aExcludedWords } = get();
+                return aExcludedWords;
             },
         }),
         {
