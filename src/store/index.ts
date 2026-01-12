@@ -12,6 +12,8 @@ import {
     Settings,
     HskLevel,
     LevelStats,
+    ReviewTestSettings,
+    ReviewTestRecord,
 } from '../types';
 import { allWords, getWordsByLevel, levelWordCounts } from '../data';
 
@@ -157,6 +159,34 @@ interface AppState
         aReviewWordIds: string[];
         aNewWordIds: string[];
     };
+
+    // ============================================================
+    // 복습 테스트 관련
+    // ============================================================
+
+    // 복습 테스트 설정
+    reviewTestSettings: ReviewTestSettings;
+
+    // 복습 테스트 기록
+    reviewTestRecords: ReviewTestRecord[];
+
+    // 복습 테스트 설정 업데이트
+    updateReviewTestSettings: (stPartial: Partial<ReviewTestSettings>) => void;
+
+    // 복습 테스트 예정 여부 확인
+    isReviewTestDue: () => boolean;
+
+    // 복습 테스트까지 남은 일수
+    getDaysUntilReviewTest: () => number;
+
+    // 복습 테스트용 단어 가져오기 (학습한 단어 중에서)
+    getReviewTestWords: (nCount: number) => string[];
+
+    // 복습 테스트 결과 기록
+    recordReviewTestResult: (nTotal: number, nCorrect: number, aWeakWordIds: string[]) => void;
+
+    // 최근 복습 테스트 기록 가져오기
+    getRecentReviewTests: (nLimit: number) => ReviewTestRecord[];
 }
 
 const getDateKey = (): string =>
@@ -190,6 +220,14 @@ export const useAppStore = create<AppState>()(
             },
 
             aExcludedWords: [],
+
+            reviewTestSettings: {
+                nIntervalDays: 7,     // 기본 7일 주기
+                nQuestionCount: 20,   // 기본 20문제
+                dtLastTest: undefined,
+            },
+
+            reviewTestRecords: [],
 
             getTodayKey: () => getDateKey(),
 
@@ -483,6 +521,115 @@ export const useAppStore = create<AppState>()(
                     aReviewWordIds,
                     aNewWordIds,
                 };
+            },
+
+            // ============================================================
+            // 복습 테스트 관련 구현
+            // ============================================================
+
+            updateReviewTestSettings: (stPartial: Partial<ReviewTestSettings>) =>
+            {
+                set((state) => ({
+                    reviewTestSettings: {
+                        ...state.reviewTestSettings,
+                        ...stPartial,
+                    },
+                }));
+            },
+
+            isReviewTestDue: () =>
+            {
+                const { reviewTestSettings, wordProgress } = get();
+
+                // 학습한 단어가 최소 10개 이상이어야 테스트 가능
+                const nLearnedCount = Object.values(wordProgress)
+                    .filter((wp) => wp.nLevel > 0).length;
+                if (nLearnedCount < 10) return false;
+
+                // 마지막 테스트 기록이 없으면 바로 테스트 가능
+                if (!reviewTestSettings.dtLastTest) return true;
+
+                const dtLast = new Date(reviewTestSettings.dtLastTest);
+                const dtNow = new Date();
+                const nDaysDiff = Math.floor(
+                    (dtNow.getTime() - dtLast.getTime()) / (1000 * 60 * 60 * 24)
+                );
+
+                return nDaysDiff >= reviewTestSettings.nIntervalDays;
+            },
+
+            getDaysUntilReviewTest: () =>
+            {
+                const { reviewTestSettings, wordProgress } = get();
+
+                // 학습한 단어가 부족하면 -1 반환
+                const nLearnedCount = Object.values(wordProgress)
+                    .filter((wp) => wp.nLevel > 0).length;
+                if (nLearnedCount < 10) return -1;
+
+                // 마지막 테스트 기록이 없으면 0 (바로 가능)
+                if (!reviewTestSettings.dtLastTest) return 0;
+
+                const dtLast = new Date(reviewTestSettings.dtLastTest);
+                const dtNow = new Date();
+                const nDaysDiff = Math.floor(
+                    (dtNow.getTime() - dtLast.getTime()) / (1000 * 60 * 60 * 24)
+                );
+
+                const nRemaining = reviewTestSettings.nIntervalDays - nDaysDiff;
+                return Math.max(0, nRemaining);
+            },
+
+            getReviewTestWords: (nCount: number) =>
+            {
+                const { wordProgress, settings } = get();
+
+                // 학습한 단어 중에서 선택 (nLevel > 0)
+                const aLearnedWordIds = Object.values(wordProgress)
+                    .filter((wp) =>
+                    {
+                        if (wp.nLevel === 0) return false;
+
+                        // 선택한 레벨만 포함
+                        const stWord = allWords.find((w) => w.szId === wp.szWordId);
+                        return stWord && settings.aSelectedLevels.includes(stWord.nLevel);
+                    })
+                    .map((wp) => wp.szWordId);
+
+                // 셔플 후 요청 개수만큼 반환
+                return aLearnedWordIds
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, nCount);
+            },
+
+            recordReviewTestResult: (nTotal: number, nCorrect: number, aWeakWordIds: string[]) =>
+            {
+                const { reviewTestRecords } = get();
+                const szToday = getDateKey();
+
+                const stNewRecord: ReviewTestRecord = {
+                    szDate: szToday,
+                    nTotalQuestions: nTotal,
+                    nCorrectAnswers: nCorrect,
+                    nAccuracyPercent: nTotal > 0 ? Math.round((nCorrect / nTotal) * 100) : 0,
+                    aWeakWords: aWeakWordIds,
+                };
+
+                set({
+                    reviewTestRecords: [...reviewTestRecords, stNewRecord],
+                    reviewTestSettings: {
+                        ...get().reviewTestSettings,
+                        dtLastTest: szToday,
+                    },
+                });
+            },
+
+            getRecentReviewTests: (nLimit: number) =>
+            {
+                const { reviewTestRecords } = get();
+                return reviewTestRecords
+                    .slice(-nLimit)
+                    .reverse();  // 최신순
             },
         }),
         {

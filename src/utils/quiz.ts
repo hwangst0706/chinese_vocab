@@ -3,7 +3,7 @@
  * @brief 퀴즈 문제 생성 로직
  */
 
-import { Word, QuizQuestion, QuizType } from '../types';
+import { Word, QuizQuestion, QuizType, ReviewQuizQuestion, ReviewQuizType } from '../types';
 import { allWords, getWordById } from '../data';
 
 /**
@@ -197,4 +197,177 @@ export function getQuestionDisplay(stQuestion: QuizQuestion): string
         default:
             return '';
     }
+}
+
+// ============================================================
+// 복습 테스트 퀴즈 생성 함수
+// ============================================================
+
+/**
+ * @brief 빈칸 채우기 문제 생성
+ * @param stWord 정답 단어 (예문 필수)
+ * @return ReviewQuizQuestion 또는 null (예문 없으면)
+ */
+export function generateFillBlankQuestion(stWord: Word): ReviewQuizQuestion | null
+{
+    if (!stWord.szExample || !stWord.szHanzi)
+    {
+        return null;
+    }
+
+    // 예문에서 단어를 빈칸으로 치환
+    const szQuestionText = stWord.szExample.replace(stWord.szHanzi, '______');
+
+    // 만약 단어가 예문에 없으면 null 반환
+    if (szQuestionText === stWord.szExample)
+    {
+        return null;
+    }
+
+    // 오답 선택지 생성 (같은 레벨, 비슷한 글자수)
+    const { aOptions, nCorrectIndex } = generateOptions(stWord, 'szHanzi', 4);
+
+    return {
+        stWord,
+        type: 'fill_blank',
+        szQuestionText,
+        aOptions,
+        nCorrectIndex,
+    };
+}
+
+/**
+ * @brief 듣기 퀴즈 문제 생성 (발음 듣고 한자 선택)
+ * @param stWord 정답 단어
+ */
+export function generateListeningQuestion(stWord: Word): ReviewQuizQuestion
+{
+    const { aOptions, nCorrectIndex } = generateOptions(stWord, 'szHanzi', 4);
+
+    return {
+        stWord,
+        type: 'listening',
+        aOptions,
+        nCorrectIndex,
+    };
+}
+
+/**
+ * @brief 병음 타이핑 문제 생성 (한자 보고 병음 입력)
+ * @param stWord 정답 단어
+ */
+export function generatePinyinTypingQuestion(stWord: Word): ReviewQuizQuestion
+{
+    return {
+        stWord,
+        type: 'pinyin_typing',
+        szCorrectPinyin: stWord.szPinyin,
+    };
+}
+
+/**
+ * @brief 복습 테스트 문제 세트 생성
+ * @param aWordIds 테스트할 단어 ID 배열
+ * @param nQuestionCount 생성할 문제 수
+ * @return 셔플된 복습 퀴즈 배열
+ */
+export function generateReviewQuizQuestions(
+    aWordIds: string[],
+    nQuestionCount: number = 20
+): ReviewQuizQuestion[]
+{
+    const aAllQuestions: ReviewQuizQuestion[] = [];
+    const aReviewTypes: ReviewQuizType[] = ['fill_blank', 'listening', 'pinyin_typing'];
+
+    // 각 단어에 대해 랜덤한 퀴즈 타입 할당
+    aWordIds.forEach((szWordId) =>
+    {
+        const stWord = getWordById(szWordId);
+        if (!stWord) return;
+
+        // 랜덤 퀴즈 타입 선택
+        const type = aReviewTypes[Math.floor(Math.random() * aReviewTypes.length)];
+
+        let stQuestion: ReviewQuizQuestion | null = null;
+
+        switch (type)
+        {
+            case 'fill_blank':
+                stQuestion = generateFillBlankQuestion(stWord);
+                // 예문이 없으면 듣기 퀴즈로 대체
+                if (!stQuestion)
+                {
+                    stQuestion = generateListeningQuestion(stWord);
+                }
+                break;
+            case 'listening':
+                stQuestion = generateListeningQuestion(stWord);
+                break;
+            case 'pinyin_typing':
+                stQuestion = generatePinyinTypingQuestion(stWord);
+                break;
+        }
+
+        if (stQuestion)
+        {
+            aAllQuestions.push(stQuestion);
+        }
+    });
+
+    // 셔플 후 요청된 문제 수만큼 반환
+    return aAllQuestions
+        .sort(() => Math.random() - 0.5)
+        .slice(0, nQuestionCount);
+}
+
+/**
+ * @brief 복습 퀴즈 타입 한글 이름
+ */
+export function getReviewQuizTypeName(type: ReviewQuizType): string
+{
+    switch (type)
+    {
+        case 'fill_blank':
+            return '빈칸 채우기';
+        case 'listening':
+            return '듣기';
+        case 'pinyin_typing':
+            return '병음 입력';
+        default:
+            return '복습';
+    }
+}
+
+/**
+ * @brief 병음 정답 비교 (성조 부호 무시 옵션)
+ * @param szInput 사용자 입력
+ * @param szCorrect 정답 병음
+ * @param bIgnoreTone 성조 무시 여부
+ */
+export function comparePinyin(
+    szInput: string,
+    szCorrect: string,
+    bIgnoreTone: boolean = false
+): boolean
+{
+    const normalize = (s: string): string =>
+    {
+        let result = s.toLowerCase().trim();
+        if (bIgnoreTone)
+        {
+            // 성조 부호를 기본 알파벳으로 변환
+            const toneMap: Record<string, string> = {
+                'ā': 'a', 'á': 'a', 'ǎ': 'a', 'à': 'a',
+                'ē': 'e', 'é': 'e', 'ě': 'e', 'è': 'e',
+                'ī': 'i', 'í': 'i', 'ǐ': 'i', 'ì': 'i',
+                'ō': 'o', 'ó': 'o', 'ǒ': 'o', 'ò': 'o',
+                'ū': 'u', 'ú': 'u', 'ǔ': 'u', 'ù': 'u',
+                'ǖ': 'v', 'ǘ': 'v', 'ǚ': 'v', 'ǜ': 'v', 'ü': 'v',
+            };
+            result = result.split('').map(c => toneMap[c] || c).join('');
+        }
+        return result;
+    };
+
+    return normalize(szInput) === normalize(szCorrect);
 }

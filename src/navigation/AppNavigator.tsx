@@ -11,6 +11,7 @@ import { Text, View, StyleSheet } from 'react-native';
 
 import HomeScreen from '../screens/HomeScreen';
 import QuizScreen from '../screens/QuizScreen';
+import ReviewQuizScreen from '../screens/ReviewQuizScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import StatsScreen from '../screens/StatsScreen';
 import ExcludedWordsScreen from '../screens/ExcludedWordsScreen';
@@ -105,6 +106,11 @@ function MainNavigator(): React.JSX.Element
             <Stack.Screen
                 name="Quiz"
                 component={QuizScreen}
+                options={{ gestureEnabled: false }}
+            />
+            <Stack.Screen
+                name="ReviewQuiz"
+                component={ReviewQuizScreen}
                 options={{ gestureEnabled: false }}
             />
             <Stack.Screen name="ExcludedWords" component={ExcludedWordsScreen} />

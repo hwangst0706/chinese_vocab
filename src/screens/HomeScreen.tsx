@@ -26,10 +26,15 @@ export default function HomeScreen(): React.JSX.Element
         getTodayStats,
         getWordsToReview,
         getLevelStats,
+        isReviewTestDue,
+        getDaysUntilReviewTest,
+        reviewTestSettings,
     } = useAppStore();
 
     const stTodayStats = getTodayStats();
     const aReviewWords = getWordsToReview();
+    const bReviewTestDue = isReviewTestDue();
+    const nDaysUntilTest = getDaysUntilReviewTest();
 
     // 단어 수 기준 진도 계산 (퀴즈 3개 = 단어 1개)
     const nTotalQuizCount = settings.nDailyGoal * 3;
@@ -42,6 +47,11 @@ export default function HomeScreen(): React.JSX.Element
     const handleStartQuiz = (): void =>
     {
         navigation.navigate('Quiz');
+    };
+
+    const handleStartReviewTest = (): void =>
+    {
+        navigation.navigate('ReviewQuiz');
     };
 
     return (
@@ -111,6 +121,50 @@ export default function HomeScreen(): React.JSX.Element
                             : '새 단어 학습'}
                     </Text>
                 </TouchableOpacity>
+
+                {/* 복습 테스트 카드 */}
+                {nDaysUntilTest >= 0 && (
+                    <TouchableOpacity
+                        style={[
+                            styles.reviewTestCard,
+                            {
+                                backgroundColor: bReviewTestDue ? colors.accent : colors.surface,
+                                shadowColor: colors.shadow,
+                            },
+                        ]}
+                        onPress={bReviewTestDue ? handleStartReviewTest : undefined}
+                        activeOpacity={bReviewTestDue ? 0.8 : 1}
+                        disabled={!bReviewTestDue}
+                    >
+                        <View style={styles.reviewTestContent}>
+                            <Text style={[
+                                styles.reviewTestIcon,
+                                { opacity: bReviewTestDue ? 1 : 0.5 }
+                            ]}>
+                                📝
+                            </Text>
+                            <View style={styles.reviewTestTextContainer}>
+                                <Text style={[
+                                    styles.reviewTestTitle,
+                                    { color: bReviewTestDue ? '#FFFFFF' : colors.text }
+                                ]}>
+                                    {bReviewTestDue ? '복습 테스트 시작!' : '복습 테스트'}
+                                </Text>
+                                <Text style={[
+                                    styles.reviewTestSubtext,
+                                    { color: bReviewTestDue ? 'rgba(255,255,255,0.8)' : colors.textSecondary }
+                                ]}>
+                                    {bReviewTestDue
+                                        ? `${reviewTestSettings.nQuestionCount}문제 · 빈칸채우기, 듣기, 병음입력`
+                                        : `${nDaysUntilTest}일 후 테스트 가능`}
+                                </Text>
+                            </View>
+                            {bReviewTestDue && (
+                                <Text style={styles.reviewTestArrow}>→</Text>
+                            )}
+                        </View>
+                    </TouchableOpacity>
+                )}
 
                 {/* HSK 레벨별 진도 */}
                 <View style={styles.levelSection}>
@@ -290,5 +344,38 @@ const styles = StyleSheet.create({
     startButtonSubtext: {
         fontSize: 14,
         marginTop: 4,
+    },
+    reviewTestCard: {
+        borderRadius: 16,
+        padding: 16,
+        marginBottom: 24,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+        elevation: 3,
+    },
+    reviewTestContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    reviewTestIcon: {
+        fontSize: 32,
+        marginRight: 12,
+    },
+    reviewTestTextContainer: {
+        flex: 1,
+    },
+    reviewTestTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    reviewTestSubtext: {
+        fontSize: 13,
+        marginTop: 2,
+    },
+    reviewTestArrow: {
+        fontSize: 24,
+        color: '#FFFFFF',
+        fontWeight: '300',
     },
 });

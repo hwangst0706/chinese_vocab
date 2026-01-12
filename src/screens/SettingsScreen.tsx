@@ -25,14 +25,30 @@ export default function SettingsScreen(): React.JSX.Element
 {
     const navigation = useNavigation<any>();
     const { colors, themeMode, setThemeMode } = useTheme();
-    const { settings, updateSettings, resetAllProgress, getExcludedWordIds, getMostWrongWords } = useAppStore();
+    const {
+        settings,
+        updateSettings,
+        resetAllProgress,
+        getExcludedWordIds,
+        getMostWrongWords,
+        reviewTestSettings,
+        updateReviewTestSettings,
+    } = useAppStore();
 
     const [szDailyGoal, setDailyGoal] = useState(settings.nDailyGoal.toString());
+    const [szReviewInterval, setReviewInterval] = useState(reviewTestSettings.nIntervalDays.toString());
+    const [szReviewQuestionCount, setReviewQuestionCount] = useState(reviewTestSettings.nQuestionCount.toString());
 
     useEffect(() =>
     {
         setDailyGoal(settings.nDailyGoal.toString());
     }, [settings.nDailyGoal]);
+
+    useEffect(() =>
+    {
+        setReviewInterval(reviewTestSettings.nIntervalDays.toString());
+        setReviewQuestionCount(reviewTestSettings.nQuestionCount.toString());
+    }, [reviewTestSettings.nIntervalDays, reviewTestSettings.nQuestionCount]);
 
     const handleDailyGoalChange = (szValue: string): void =>
     {
@@ -52,6 +68,36 @@ export default function SettingsScreen(): React.JSX.Element
         }
         setDailyGoal(nValue.toString());
         updateSettings({ nDailyGoal: nValue });
+    };
+
+    const handleReviewIntervalBlur = (): void =>
+    {
+        let nValue = parseInt(szReviewInterval, 10);
+        if (isNaN(nValue) || nValue < 1)
+        {
+            nValue = 1;
+        }
+        else if (nValue > 30)
+        {
+            nValue = 30;
+        }
+        setReviewInterval(nValue.toString());
+        updateReviewTestSettings({ nIntervalDays: nValue });
+    };
+
+    const handleReviewQuestionCountBlur = (): void =>
+    {
+        let nValue = parseInt(szReviewQuestionCount, 10);
+        if (isNaN(nValue) || nValue < 5)
+        {
+            nValue = 5;
+        }
+        else if (nValue > 50)
+        {
+            nValue = 50;
+        }
+        setReviewQuestionCount(nValue.toString());
+        updateReviewTestSettings({ nQuestionCount: nValue });
     };
 
     const handleToggleLevel = (nLevel: HskLevel): void =>
@@ -143,7 +189,12 @@ export default function SettingsScreen(): React.JSX.Element
                 <View style={[styles.section, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>일일 목표</Text>
                     <View style={styles.dailyGoalRow}>
-                        <Text style={[styles.label, { color: colors.text }]}>하루 문제 수</Text>
+                        <View style={styles.settingInfo}>
+                            <Text style={[styles.label, { color: colors.text }]}>하루 단어 수</Text>
+                            <Text style={[styles.settingDescription, { color: colors.textMuted }]}>
+                                단어당 3문제씩 출제됩니다
+                            </Text>
+                        </View>
                         <View style={styles.dailyGoalInput}>
                             <TextInput
                                 style={[styles.input, { backgroundColor: colors.surfaceLight, color: colors.text }]}
@@ -154,7 +205,7 @@ export default function SettingsScreen(): React.JSX.Element
                                 maxLength={3}
                                 placeholderTextColor={colors.textMuted}
                             />
-                            <Text style={[styles.inputSuffix, { color: colors.textSecondary }]}>문제</Text>
+                            <Text style={[styles.inputSuffix, { color: colors.textSecondary }]}>단어</Text>
                         </View>
                     </View>
                 </View>
@@ -262,6 +313,56 @@ export default function SettingsScreen(): React.JSX.Element
                     </View>
                 </View>
 
+                {/* 복습 테스트 설정 */}
+                <View style={[styles.section, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>복습 테스트</Text>
+                    <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+                        주기적으로 학습한 단어를 테스트합니다
+                    </Text>
+
+                    <View style={styles.dailyGoalRow}>
+                        <View style={styles.settingInfo}>
+                            <Text style={[styles.label, { color: colors.text }]}>테스트 주기</Text>
+                            <Text style={[styles.settingDescription, { color: colors.textMuted }]}>
+                                1~30일 (권장: 7일)
+                            </Text>
+                        </View>
+                        <View style={styles.dailyGoalInput}>
+                            <TextInput
+                                style={[styles.input, { backgroundColor: colors.surfaceLight, color: colors.text }]}
+                                value={szReviewInterval}
+                                onChangeText={setReviewInterval}
+                                onBlur={handleReviewIntervalBlur}
+                                keyboardType="number-pad"
+                                maxLength={2}
+                                placeholderTextColor={colors.textMuted}
+                            />
+                            <Text style={[styles.inputSuffix, { color: colors.textSecondary }]}>일</Text>
+                        </View>
+                    </View>
+
+                    <View style={[styles.dailyGoalRow, { marginTop: 16 }]}>
+                        <View style={styles.settingInfo}>
+                            <Text style={[styles.label, { color: colors.text }]}>문제 수</Text>
+                            <Text style={[styles.settingDescription, { color: colors.textMuted }]}>
+                                5~50문제 (권장: 20문제)
+                            </Text>
+                        </View>
+                        <View style={styles.dailyGoalInput}>
+                            <TextInput
+                                style={[styles.input, { backgroundColor: colors.surfaceLight, color: colors.text }]}
+                                value={szReviewQuestionCount}
+                                onChangeText={setReviewQuestionCount}
+                                onBlur={handleReviewQuestionCountBlur}
+                                keyboardType="number-pad"
+                                maxLength={2}
+                                placeholderTextColor={colors.textMuted}
+                            />
+                            <Text style={[styles.inputSuffix, { color: colors.textSecondary }]}>문제</Text>
+                        </View>
+                    </View>
+                </View>
+
                 {/* 학습 관리 */}
                 <View style={[styles.section, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>학습 관리</Text>
@@ -313,7 +414,7 @@ export default function SettingsScreen(): React.JSX.Element
 
                 {/* 앱 정보 */}
                 <View style={styles.appInfo}>
-                    <Text style={[styles.appInfoText, { color: colors.textMuted }]}>HSK 단어 암기 v1.4.0</Text>
+                    <Text style={[styles.appInfoText, { color: colors.textMuted }]}>HSK 단어 암기 v1.7.0</Text>
                     <Text style={[styles.appInfoText, { color: colors.textMuted }]}>
                         HSK 1~4급 총 {levelWordCounts[1] + levelWordCounts[2] + levelWordCounts[3] + levelWordCounts[4]}개 단어
                     </Text>

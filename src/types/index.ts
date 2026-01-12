@@ -19,6 +19,22 @@ export interface Word
 
 export type QuizType = 'hanzi_to_meaning' | 'meaning_to_hanzi' | 'hanzi_to_pinyin';
 
+// 복습 테스트 전용 퀴즈 타입
+export type ReviewQuizType = 'fill_blank' | 'listening' | 'pinyin_typing';
+
+export interface ReviewQuizQuestion
+{
+    stWord: Word;
+    type: ReviewQuizType;
+    // fill_blank: 빈칸이 있는 예문
+    szQuestionText?: string;
+    // fill_blank, listening: 선택지
+    aOptions?: string[];
+    nCorrectIndex?: number;
+    // pinyin_typing: 정답 병음
+    szCorrectPinyin?: string;
+}
+
 export interface QuizQuestion
 {
     stWord: Word;
@@ -68,4 +84,22 @@ export interface LevelStats
     nTotalWords: number;
     nLearnedWords: number;    // 한번이라도 학습한 단어
     nMasteredWords: number;   // 암기 완료한 단어
+}
+
+// 복습 테스트 기록
+export interface ReviewTestRecord
+{
+    szDate: string;           // YYYY-MM-DD
+    nTotalQuestions: number;
+    nCorrectAnswers: number;
+    nAccuracyPercent: number;
+    aWeakWords: string[];     // 틀린 단어 ID 목록
+}
+
+// 복습 테스트 설정
+export interface ReviewTestSettings
+{
+    nIntervalDays: number;    // 복습 테스트 주기 (기본: 7일)
+    nQuestionCount: number;   // 문제 수 (기본: 20)
+    dtLastTest?: string;      // 마지막 테스트 날짜
 }
