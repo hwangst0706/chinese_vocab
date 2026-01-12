@@ -414,7 +414,7 @@ export default function SettingsScreen(): React.JSX.Element
 
                 {/* 앱 정보 */}
                 <View style={styles.appInfo}>
-                    <Text style={[styles.appInfoText, { color: colors.textMuted }]}>HSK 단어 암기 v1.7.0</Text>
+                    <Text style={[styles.appInfoText, { color: colors.textMuted }]}>HSK 단어 암기 v1.7.1</Text>
                     <Text style={[styles.appInfoText, { color: colors.textMuted }]}>
                         HSK 1~4급 총 {levelWordCounts[1] + levelWordCounts[2] + levelWordCounts[3] + levelWordCounts[4]}개 단어
                     </Text>

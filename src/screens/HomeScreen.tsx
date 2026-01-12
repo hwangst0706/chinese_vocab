@@ -29,12 +29,17 @@ export default function HomeScreen(): React.JSX.Element
         isReviewTestDue,
         getDaysUntilReviewTest,
         reviewTestSettings,
+        getCurrentStreak,
+        getLongestStreak,
+        hasLearnedOnDate,
     } = useAppStore();
 
     const stTodayStats = getTodayStats();
     const aReviewWords = getWordsToReview();
     const bReviewTestDue = isReviewTestDue();
     const nDaysUntilTest = getDaysUntilReviewTest();
+    const nCurrentStreak = getCurrentStreak();
+    const nLongestStreak = getLongestStreak();
 
     // 단어 수 기준 진도 계산 (퀴즈 3개 = 단어 1개)
     const nTotalQuizCount = settings.nDailyGoal * 3;
@@ -66,6 +71,62 @@ export default function HomeScreen(): React.JSX.Element
                     <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
                         오늘도 화이팅! 🔥
                     </Text>
+                </View>
+
+                {/* 연속 학습 카드 */}
+                <View style={[styles.streakCard, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
+                    <View style={styles.streakMain}>
+                        <Text style={styles.streakFireIcon}>🔥</Text>
+                        <View style={styles.streakInfo}>
+                            <Text style={[styles.streakCount, { color: colors.accent }]}>
+                                {nCurrentStreak}
+                            </Text>
+                            <Text style={[styles.streakLabel, { color: colors.textSecondary }]}>
+                                일 연속 학습
+                            </Text>
+                        </View>
+                        {nLongestStreak > nCurrentStreak && (
+                            <View style={[styles.streakBest, { backgroundColor: colors.surfaceLight }]}>
+                                <Text style={[styles.streakBestText, { color: colors.textSecondary }]}>
+                                    최장 {nLongestStreak}일
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* 최근 7일 표시 */}
+                    <View style={styles.streakWeek}>
+                        {Array.from({ length: 7 }).map((_, i) =>
+                        {
+                            const dtCheck = new Date();
+                            dtCheck.setDate(dtCheck.getDate() - (6 - i));
+                            const szDateKey = dtCheck.toISOString().split('T')[0];
+                            const bLearned = hasLearnedOnDate(szDateKey);
+                            const bIsToday = i === 6;
+                            const aDayNames = ['일', '월', '화', '수', '목', '금', '토'];
+                            const szDayName = aDayNames[dtCheck.getDay()];
+
+                            return (
+                                <View key={i} style={styles.streakDay}>
+                                    <Text style={[styles.streakDayName, { color: colors.textMuted }]}>
+                                        {szDayName}
+                                    </Text>
+                                    <View
+                                        style={[
+                                            styles.streakDot,
+                                            {
+                                                backgroundColor: bLearned ? colors.accent : colors.surfaceLight,
+                                                borderWidth: bIsToday ? 2 : 0,
+                                                borderColor: colors.primary,
+                                            },
+                                        ]}
+                                    >
+                                        {bLearned && <Text style={styles.streakCheck}>✓</Text>}
+                                    </View>
+                                </View>
+                            );
+                        })}
+                    </View>
                 </View>
 
                 {/* 일일 목표 카드 */}
@@ -377,5 +438,67 @@ const styles = StyleSheet.create({
         fontSize: 24,
         color: '#FFFFFF',
         fontWeight: '300',
+    },
+    // 연속 학습 카드
+    streakCard: {
+        borderRadius: 20,
+        padding: 20,
+        marginBottom: 20,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.1,
+        shadowRadius: 12,
+        elevation: 4,
+    },
+    streakMain: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 16,
+    },
+    streakFireIcon: {
+        fontSize: 40,
+        marginRight: 12,
+    },
+    streakInfo: {
+        flex: 1,
+    },
+    streakCount: {
+        fontSize: 36,
+        fontWeight: '800',
+    },
+    streakLabel: {
+        fontSize: 14,
+        marginTop: -4,
+    },
+    streakBest: {
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: 12,
+    },
+    streakBestText: {
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    streakWeek: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    streakDay: {
+        alignItems: 'center',
+    },
+    streakDayName: {
+        fontSize: 12,
+        marginBottom: 6,
+    },
+    streakDot: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    streakCheck: {
+        color: '#FFFFFF',
+        fontSize: 14,
+        fontWeight: '700',
     },
 });

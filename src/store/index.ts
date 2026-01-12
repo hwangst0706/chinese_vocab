@@ -187,6 +187,19 @@ interface AppState
 
     // 최근 복습 테스트 기록 가져오기
     getRecentReviewTests: (nLimit: number) => ReviewTestRecord[];
+
+    // ============================================================
+    // 연속 학습 (스트릭) 관련
+    // ============================================================
+
+    // 현재 연속 학습일 가져오기
+    getCurrentStreak: () => number;
+
+    // 최장 연속 학습일 가져오기
+    getLongestStreak: () => number;
+
+    // 특정 날짜에 학습했는지 확인
+    hasLearnedOnDate: (szDate: string) => boolean;
 }
 
 const getDateKey = (): string =>
@@ -630,6 +643,114 @@ export const useAppStore = create<AppState>()(
                 return reviewTestRecords
                     .slice(-nLimit)
                     .reverse();  // 최신순
+            },
+
+            // ============================================================
+            // 연속 학습 (스트릭) 관련 구현
+            // ============================================================
+
+            hasLearnedOnDate: (szDate: string) =>
+            {
+                const { dailyStats, reviewTestRecords } = get();
+
+                // 일일 학습 기록 확인
+                const stDayStats = dailyStats[szDate];
+                if (stDayStats && stDayStats.nQuestionsAnswered > 0)
+                {
+                    return true;
+                }
+
+                // 복습 테스트 기록 확인
+                const bHasReviewTest = reviewTestRecords.some(
+                    (record) => record.szDate === szDate
+                );
+
+                return bHasReviewTest;
+            },
+
+            getCurrentStreak: () =>
+            {
+                const { hasLearnedOnDate } = get();
+                const dtToday = new Date();
+                let nStreak = 0;
+
+                // 오늘부터 거꾸로 확인
+                for (let i = 0; i < 365; i++)  // 최대 1년까지 확인
+                {
+                    const dtCheck = new Date(dtToday);
+                    dtCheck.setDate(dtCheck.getDate() - i);
+                    const szDateKey = dtCheck.toISOString().split('T')[0];
+
+                    if (hasLearnedOnDate(szDateKey))
+                    {
+                        nStreak++;
+                    }
+                    else
+                    {
+                        // 오늘 아직 안했으면 어제부터 카운트
+                        if (i === 0)
+                        {
+                            continue;
+                        }
+                        break;
+                    }
+                }
+
+                return nStreak;
+            },
+
+            getLongestStreak: () =>
+            {
+                const { dailyStats, reviewTestRecords } = get();
+
+                // 모든 학습 날짜 수집
+                const aLearnedDates = new Set<string>();
+
+                // dailyStats에서 학습한 날짜
+                Object.entries(dailyStats).forEach(([szDate, stats]) =>
+                {
+                    if (stats.nQuestionsAnswered > 0)
+                    {
+                        aLearnedDates.add(szDate);
+                    }
+                });
+
+                // reviewTestRecords에서 테스트한 날짜
+                reviewTestRecords.forEach((record) =>
+                {
+                    aLearnedDates.add(record.szDate);
+                });
+
+                if (aLearnedDates.size === 0) return 0;
+
+                // 날짜 정렬
+                const aSortedDates = Array.from(aLearnedDates).sort();
+
+                let nLongestStreak = 1;
+                let nCurrentStreak = 1;
+
+                for (let i = 1; i < aSortedDates.length; i++)
+                {
+                    const dtPrev = new Date(aSortedDates[i - 1]);
+                    const dtCurr = new Date(aSortedDates[i]);
+
+                    // 연속 날짜인지 확인 (하루 차이)
+                    const nDiffDays = Math.round(
+                        (dtCurr.getTime() - dtPrev.getTime()) / (1000 * 60 * 60 * 24)
+                    );
+
+                    if (nDiffDays === 1)
+                    {
+                        nCurrentStreak++;
+                        nLongestStreak = Math.max(nLongestStreak, nCurrentStreak);
+                    }
+                    else
+                    {
+                        nCurrentStreak = 1;
+                    }
+                }
+
+                return nLongestStreak;
             },
         }),
         {
