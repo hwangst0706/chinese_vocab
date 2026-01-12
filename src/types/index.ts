@@ -86,6 +86,7 @@ export interface Settings
     bNotificationEnabled: boolean;
     bShowPinyin: boolean;     // 퀴즈 중 병음 표시 (병음 퀴즈 제외)
     bToneStrictMode: boolean; // 성조 엄격 모드 (병음 입력 시 성조 필수)
+    szGeminiApiKey: string;   // Gemini API 키 (AI 예문 생성용)
 }
 
 export interface LevelStats

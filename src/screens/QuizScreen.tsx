@@ -32,6 +32,7 @@ import {
     isTypingQuiz,
     comparePinyin,
 } from '../utils/quiz';
+import AiExamplesModal from '../components/AiExamplesModal';
 
 type LearningPhase = 'preview' | 'quiz' | 'result';
 
@@ -196,6 +197,9 @@ export default function QuizScreen(): React.JSX.Element
     // 타이핑 퀴즈 상태
     const [szTypedAnswer, setTypedAnswer] = useState('');
     const [bTypingCorrect, setTypingCorrect] = useState<boolean | null>(null);
+
+    // AI 모달 상태
+    const [bAiModalVisible, setAiModalVisible] = useState(false);
 
     // 세션 정보
     const [nReviewCount, setReviewCount] = useState(0);
@@ -1110,6 +1114,33 @@ export default function QuizScreen(): React.JSX.Element
                                     : '이 단어 퀴즈에서 제외'}
                             </Text>
                         </TouchableOpacity>
+
+                        {/* AI 예문 생성 버튼 */}
+                        <TouchableOpacity
+                            style={[styles.aiButton, { backgroundColor: colors.primary + '20' }]}
+                            onPress={() =>
+                            {
+                                if (!settings.szGeminiApiKey)
+                                {
+                                    Alert.alert(
+                                        'API 키 필요',
+                                        'AI 예문 생성을 사용하려면 설정에서 Gemini API 키를 입력해주세요.',
+                                        [
+                                            { text: '취소', style: 'cancel' },
+                                            { text: '설정으로 이동', onPress: () => navigation.navigate('Settings') },
+                                        ]
+                                    );
+                                }
+                                else
+                                {
+                                    setAiModalVisible(true);
+                                }
+                            }}
+                        >
+                            <Text style={[styles.aiButtonText, { color: colors.primary }]}>
+                                ✨ AI로 예문 더 보기
+                            </Text>
+                        </TouchableOpacity>
                     </Animated.View>
                     )}
                 </Animated.View>
@@ -1127,6 +1158,15 @@ export default function QuizScreen(): React.JSX.Element
                         </Text>
                     </TouchableOpacity>
                 </View>
+            )}
+
+            {/* AI 예문 모달 */}
+            {stCurrentQuestion && (
+                <AiExamplesModal
+                    bVisible={bAiModalVisible}
+                    onClose={() => setAiModalVisible(false)}
+                    stWord={stCurrentQuestion.stWord}
+                />
             )}
         </SafeAreaView>
     );
@@ -1317,10 +1357,21 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         paddingVertical: 10,
         paddingHorizontal: 16,
-        marginBottom: 16,
+        marginBottom: 12,
     },
     excludeButtonText: {
         fontSize: 14,
+        textAlign: 'center',
+    },
+    aiButton: {
+        borderRadius: 12,
+        paddingVertical: 12,
+        paddingHorizontal: 20,
+        marginBottom: 16,
+    },
+    aiButtonText: {
+        fontSize: 15,
+        fontWeight: '600',
         textAlign: 'center',
     },
     nextButton: {

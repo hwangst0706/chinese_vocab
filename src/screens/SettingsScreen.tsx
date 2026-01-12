@@ -415,6 +415,31 @@ export default function SettingsScreen(): React.JSX.Element
                     </TouchableOpacity>
                 </View>
 
+                {/* AI 설정 */}
+                <View style={[styles.section, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
+                    <Text style={[styles.sectionTitle, { color: colors.text }]}>AI 학습 도우미</Text>
+                    <Text style={[styles.sectionDescription, { color: colors.textSecondary }]}>
+                        Gemini API로 추가 예문을 생성하고 질문할 수 있습니다
+                    </Text>
+
+                    <View style={styles.apiKeyContainer}>
+                        <Text style={[styles.label, { color: colors.text }]}>Gemini API 키</Text>
+                        <TextInput
+                            style={[styles.apiKeyInput, { backgroundColor: colors.surfaceLight, color: colors.text }]}
+                            value={settings.szGeminiApiKey}
+                            onChangeText={(szValue) => updateSettings({ szGeminiApiKey: szValue })}
+                            placeholder="API 키를 입력하세요"
+                            placeholderTextColor={colors.textMuted}
+                            secureTextEntry
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                        />
+                        <Text style={[styles.apiKeyHint, { color: colors.textMuted }]}>
+                            Google AI Studio에서 무료로 발급받을 수 있습니다
+                        </Text>
+                    </View>
+                </View>
+
                 {/* 데이터 관리 */}
                 <View style={[styles.section, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>데이터 관리</Text>
@@ -596,6 +621,20 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
         color: '#FFFFFF',
+    },
+    apiKeyContainer: {
+        marginTop: 8,
+    },
+    apiKeyInput: {
+        borderRadius: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        fontSize: 14,
+        marginTop: 8,
+    },
+    apiKeyHint: {
+        fontSize: 12,
+        marginTop: 8,
     },
     dangerButton: {
         borderRadius: 14,

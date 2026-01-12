@@ -231,6 +231,7 @@ export const useAppStore = create<AppState>()(
                 bNotificationEnabled: true,
                 bShowPinyin: true,
                 bToneStrictMode: false,
+                szGeminiApiKey: '',
             },
 
             aExcludedWords: [],
