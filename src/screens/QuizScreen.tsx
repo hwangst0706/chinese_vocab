@@ -723,6 +723,14 @@ export default function QuizScreen(): React.JSX.Element
                                 <Text style={[styles.cardExampleMeaning, { color: colors.textSecondary }]}>
                                     {stCurrentWord.szExampleMeaning}
                                 </Text>
+                                <TouchableOpacity
+                                    style={[styles.exampleSpeakButton, { backgroundColor: colors.surface }]}
+                                    onPress={() => handlePreviewSpeak(stCurrentWord.szExample!)}
+                                >
+                                    <Text style={[styles.exampleSpeakButtonText, { color: colors.primary }]}>
+                                        🔊 예문 듣기
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                         )}
 
@@ -1064,6 +1072,23 @@ export default function QuizScreen(): React.JSX.Element
                                 <Text style={[styles.exampleMeaning, { color: colors.textSecondary }]}>
                                     {stCurrentQuestion.stWord.szExampleMeaning}
                                 </Text>
+                                <TouchableOpacity
+                                    style={[styles.exampleSpeakButton, { backgroundColor: colors.surfaceLight }]}
+                                    onPress={() =>
+                                    {
+                                        if (settings.bSoundEnabled)
+                                        {
+                                            Speech.speak(stCurrentQuestion.stWord.szExample!, {
+                                                language: 'zh-CN',
+                                                rate: 0.8,
+                                            });
+                                        }
+                                    }}
+                                >
+                                    <Text style={[styles.exampleSpeakButtonText, { color: colors.primary }]}>
+                                        🔊 예문 듣기
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                         )}
 
@@ -1276,6 +1301,17 @@ const styles = StyleSheet.create({
     },
     exampleMeaning: {
         fontSize: 14,
+    },
+    exampleSpeakButton: {
+        marginTop: 12,
+        paddingVertical: 8,
+        paddingHorizontal: 16,
+        borderRadius: 16,
+        alignSelf: 'center',
+    },
+    exampleSpeakButtonText: {
+        fontSize: 14,
+        fontWeight: '600',
     },
     excludeButton: {
         borderRadius: 8,
