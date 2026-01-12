@@ -30,8 +30,12 @@ export default function HomeScreen(): React.JSX.Element
 
     const stTodayStats = getTodayStats();
     const aReviewWords = getWordsToReview();
+
+    // 단어 수 기준 진도 계산 (퀴즈 3개 = 단어 1개)
+    const nTotalQuizCount = settings.nDailyGoal * 3;
+    const nWordsCompleted = Math.floor(stTodayStats.nQuestionsAnswered / 3);
     const nProgress = Math.min(
-        (stTodayStats.nQuestionsAnswered / settings.nDailyGoal) * 100,
+        (stTodayStats.nQuestionsAnswered / nTotalQuizCount) * 100,
         100
     );
 
@@ -68,7 +72,7 @@ export default function HomeScreen(): React.JSX.Element
                             />
                         </View>
                         <Text style={[styles.progressText, { color: colors.textSecondary }]}>
-                            {stTodayStats.nQuestionsAnswered} / {settings.nDailyGoal}
+                            {nWordsCompleted} / {settings.nDailyGoal} 단어 ({stTodayStats.nQuestionsAnswered}문제)
                         </Text>
                     </View>
 

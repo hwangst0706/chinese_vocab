@@ -28,9 +28,12 @@ export default function MostWrongWordsScreen(): React.JSX.Element
 {
     const navigation = useNavigation();
     const { colors } = useTheme();
-    const { getMostWrongWords } = useAppStore();
+    const { getMostWrongWords, getLeechWords } = useAppStore();
 
     const aMostWrong = getMostWrongWords();
+    const aLeechWords = getLeechWords();
+    const nLeechCount = aLeechWords.length;
+
     const aWrongWords: WrongWordItem[] = aMostWrong
         .map((progress) =>
         {
@@ -50,8 +53,17 @@ export default function MostWrongWordsScreen(): React.JSX.Element
               )
             : 0;
 
+        // SM-2 필드 (마이그레이션 대응)
+        const bIsLeech = item.progress.bIsLeech ?? false;
+        const fEasiness = item.progress.fEasiness ?? 2.5;
+
         return (
-            <View style={[styles.wordCard, { backgroundColor: colors.surface }]}>
+            <View style={[
+                styles.wordCard,
+                { backgroundColor: colors.surface },
+                bIsLeech && styles.leechCard,
+                bIsLeech && { borderColor: colors.wrong },
+            ]}>
                 <View style={styles.rankContainer}>
                     <Text style={[
                         styles.rank,
@@ -72,9 +84,17 @@ export default function MostWrongWordsScreen(): React.JSX.Element
                         >
                             <Text style={[styles.levelText, { color: colors.background }]}>HSK {item.word.nLevel}</Text>
                         </View>
+                        {bIsLeech && (
+                            <View style={[styles.leechBadge, { backgroundColor: colors.wrong }]}>
+                                <Text style={styles.leechBadgeText}>LEECH</Text>
+                            </View>
+                        )}
                     </View>
                     <Text style={[styles.pinyin, { color: colors.primary }]}>{item.word.szPinyin}</Text>
                     <Text style={[styles.meaning, { color: colors.textSecondary }]}>{item.word.szMeaning}</Text>
+                    <Text style={[styles.efText, { color: colors.textMuted }]}>
+                        난이도: {fEasiness.toFixed(2)} {fEasiness <= 1.5 ? '(어려움)' : fEasiness >= 2.3 ? '(쉬움)' : '(보통)'}
+                    </Text>
                 </View>
                 <View style={styles.statsContainer}>
                     <View style={styles.statItem}>
@@ -124,6 +144,13 @@ export default function MostWrongWordsScreen(): React.JSX.Element
                 <Text style={[styles.countText, { color: colors.textSecondary }]}>
                     총 {aWrongWords.length}개 단어 (오답 횟수 순)
                 </Text>
+                {nLeechCount > 0 && (
+                    <View style={[styles.leechWarning, { backgroundColor: colors.wrong + '20' }]}>
+                        <Text style={[styles.leechWarningText, { color: colors.wrong }]}>
+                            Leech 단어 {nLeechCount}개 - 다른 학습법 권장
+                        </Text>
+                    </View>
+                )}
             </View>
 
             <FlatList
@@ -166,6 +193,16 @@ const styles = StyleSheet.create({
     countText: {
         fontSize: 14,
     },
+    leechWarning: {
+        marginTop: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: 8,
+    },
+    leechWarningText: {
+        fontSize: 13,
+        fontWeight: '600',
+    },
     listContent: {
         paddingHorizontal: 20,
         paddingBottom: 20,
@@ -176,6 +213,9 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 12,
         marginBottom: 12,
+    },
+    leechCard: {
+        borderWidth: 2,
     },
     rankContainer: {
         width: 32,
@@ -208,12 +248,27 @@ const styles = StyleSheet.create({
         fontSize: 9,
         fontWeight: '600',
     },
+    leechBadge: {
+        marginLeft: 6,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+    },
+    leechBadgeText: {
+        fontSize: 8,
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
     pinyin: {
         fontSize: 12,
         marginBottom: 1,
     },
     meaning: {
         fontSize: 12,
+    },
+    efText: {
+        fontSize: 10,
+        marginTop: 4,
     },
     statsContainer: {
         flexDirection: 'row',

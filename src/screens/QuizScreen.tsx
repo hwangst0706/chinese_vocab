@@ -12,6 +12,7 @@ import {
     Animated,
     ScrollView,
     Easing,
+    Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -19,7 +20,8 @@ import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { useTheme, getHskLevelColor } from '../contexts/ThemeContext';
 import { useAppStore } from '../store';
-import { QuizQuestion } from '../types';
+import { QuizQuestion, Word } from '../types';
+import { getWordById } from '../data';
 import {
     generateQuizQuestions,
     getQuestionText,
@@ -27,7 +29,7 @@ import {
     getQuizTypeName,
 } from '../utils/quiz';
 
-const QUIZ_COUNT = 10;
+type LearningPhase = 'preview' | 'quiz' | 'result';
 
 // 애니메이션 버튼 컴포넌트
 interface AnimatedOptionButtonProps
@@ -165,34 +167,46 @@ export default function QuizScreen(): React.JSX.Element
     const { colors } = useTheme();
     const {
         settings,
-        getQuizWords,
+        getSessionWords,
         updateWordProgress,
         getTodayStats,
         toggleWordExclusion,
         isWordExcluded,
     } = useAppStore();
 
+    // Phase 관리
+    const [szPhase, setPhase] = useState<LearningPhase>('preview');
+
+    // 미리보기용 새 단어
+    const [aNewWords, setNewWords] = useState<Word[]>([]);
+    const [nPreviewIndex, setPreviewIndex] = useState(0);
+
+    // 퀴즈 상태
     const [aQuestions, setQuestions] = useState<QuizQuestion[]>([]);
     const [nCurrentIndex, setCurrentIndex] = useState(0);
     const [nSelectedOption, setSelectedOption] = useState<number | null>(null);
     const [bShowResult, setShowResult] = useState(false);
     const [nCorrectCount, setCorrectCount] = useState(0);
-    const [bQuizComplete, setQuizComplete] = useState(false);
+
+    // 세션 정보
+    const [nReviewCount, setReviewCount] = useState(0);
+    const [nNewCount, setNewCount] = useState(0);
 
     const [fadeAnim] = useState(new Animated.Value(1));
     const progressAnim = useRef(new Animated.Value(0)).current;
     const feedbackAnim = useRef(new Animated.Value(0)).current;
     const resultScaleAnim = useRef(new Animated.Value(0)).current;
+    const cardFlipAnim = useRef(new Animated.Value(0)).current;
 
     useEffect(() =>
     {
-        initializeQuiz();
+        initializeSession();
     }, []);
 
-    // 프로그레스 바 애니메이션
+    // 프로그레스 바 애니메이션 (퀴즈 단계)
     useEffect(() =>
     {
-        if (aQuestions.length > 0)
+        if (szPhase === 'quiz' && aQuestions.length > 0)
         {
             Animated.timing(progressAnim, {
                 toValue: (nCurrentIndex + 1) / aQuestions.length,
@@ -201,7 +215,7 @@ export default function QuizScreen(): React.JSX.Element
                 useNativeDriver: false,
             }).start();
         }
-    }, [nCurrentIndex, aQuestions.length]);
+    }, [nCurrentIndex, aQuestions.length, szPhase]);
 
     // 피드백 슬라이드 애니메이션
     useEffect(() =>
@@ -221,7 +235,7 @@ export default function QuizScreen(): React.JSX.Element
     // 결과 화면 애니메이션
     useEffect(() =>
     {
-        if (bQuizComplete)
+        if (szPhase === 'result')
         {
             resultScaleAnim.setValue(0);
             Animated.spring(resultScaleAnim, {
@@ -231,19 +245,105 @@ export default function QuizScreen(): React.JSX.Element
                 useNativeDriver: true,
             }).start();
         }
-    }, [bQuizComplete]);
+    }, [szPhase]);
 
-    const initializeQuiz = (): void =>
+    // 미리보기: 단어 카드 표시 시 자동 발음 재생
+    useEffect(() =>
     {
-        const aWordIds = getQuizWords(QUIZ_COUNT);
-        const aGeneratedQuestions = generateQuizQuestions(aWordIds);
+        if (szPhase === 'preview' && aNewWords.length > 0 && settings.bSoundEnabled)
+        {
+            const stWord = aNewWords[nPreviewIndex];
+            if (stWord)
+            {
+                // 약간의 딜레이 후 재생 (화면 전환 후)
+                const timeout = setTimeout(() =>
+                {
+                    Speech.speak(stWord.szHanzi, {
+                        language: 'zh-CN',
+                        rate: 0.8,
+                    });
+                }, 300);
+                return () => clearTimeout(timeout);
+            }
+        }
+    }, [szPhase, nPreviewIndex, aNewWords]);
+
+    /**
+     * @brief 세션 초기화 - 복습/새 단어 분리 및 미리보기 준비
+     */
+    const initializeSession = (): void =>
+    {
+        const nQuizCount = settings.nDailyGoal;
+        const { aReviewWordIds, aNewWordIds } = getSessionWords(nQuizCount);
+
+        // 새 단어 객체 배열 생성 (미리보기용)
+        const aNewWordObjects = aNewWordIds
+            .map((szId) => getWordById(szId))
+            .filter((w): w is Word => w !== null);
+
+        setNewWords(aNewWordObjects);
+        setNewCount(aNewWordIds.length);
+        setReviewCount(aReviewWordIds.length);
+
+        // 전체 퀴즈 생성 (복습 + 새 단어 섞기)
+        const aAllWordIds = [...aReviewWordIds, ...aNewWordIds];
+        const aShuffledIds = aAllWordIds.sort(() => Math.random() - 0.5);
+        const aGeneratedQuestions = generateQuizQuestions(aShuffledIds);
+
         setQuestions(aGeneratedQuestions);
+        setPreviewIndex(0);
         setCurrentIndex(0);
         setSelectedOption(null);
         setShowResult(false);
         setCorrectCount(0);
-        setQuizComplete(false);
         progressAnim.setValue(0);
+
+        // 상황별 알림 처리
+        if (aReviewWordIds.length === 0 && aNewWordIds.length === 0)
+        {
+            // 케이스 3: 복습도 없고 새 단어도 없음 (현재 단어장 완료)
+            Alert.alert(
+                '단어장 학습 완료! 🎉',
+                '현재 선택한 단어장의 모든 단어를 학습했어요!\n\n다른 단어장을 추가해서 계속 실력을 키워보세요!',
+                [
+                    { text: '설정으로 이동', onPress: () => navigation.navigate('Settings') },
+                    { text: '홈으로', onPress: () => navigation.goBack() },
+                ]
+            );
+            return;
+        }
+        else if (aNewWordIds.length === 0 && aReviewWordIds.length > 0)
+        {
+            // 케이스 2: 새 단어 없음 (현재 단어장 새 단어 완료, 복습만 남음)
+            if (aReviewWordIds.length >= nQuizCount)
+            {
+                // 복습이 많아서 새 단어 못 배우는 경우
+                Alert.alert(
+                    '복습 우선 모드 📚',
+                    '오늘은 복습할 단어가 많아서 새 단어 없이 복습만 진행합니다.\n\n복습을 마치면 새 단어를 배울 수 있어요!',
+                    [{ text: '복습 시작', style: 'default' }]
+                );
+            }
+            else
+            {
+                // 진짜 새 단어가 없는 경우 (단어장 완료)
+                Alert.alert(
+                    '새 단어 학습 완료! 🎊',
+                    '현재 선택한 단어장의 새 단어를 모두 학습했어요!\n\n다른 단어장을 추가하거나, 복습으로 실력을 다져보세요!',
+                    [{ text: '확인', style: 'default' }]
+                );
+            }
+            setPhase('quiz');
+        }
+        else if (aNewWordObjects.length === 0)
+        {
+            // 새 단어가 없으면 바로 퀴즈로
+            setPhase('quiz');
+        }
+        else
+        {
+            setPhase('preview');
+        }
     };
 
     const stCurrentQuestion = aQuestions[nCurrentIndex];
@@ -339,7 +439,7 @@ export default function QuizScreen(): React.JSX.Element
         }
         else
         {
-            setQuizComplete(true);
+            setPhase('result');
         }
     };
 
@@ -350,7 +450,58 @@ export default function QuizScreen(): React.JSX.Element
 
     const handleRetry = (): void =>
     {
-        initializeQuiz();
+        initializeSession();
+    };
+
+    /**
+     * @brief 미리보기에서 다음 카드로 이동
+     */
+    const handleNextPreview = (): void =>
+    {
+        if (nPreviewIndex < aNewWords.length - 1)
+        {
+            cardFlipAnim.setValue(0);
+            setPreviewIndex((prev) => prev + 1);
+        }
+        else
+        {
+            // 미리보기 완료 → 퀴즈 시작
+            setPhase('quiz');
+        }
+    };
+
+    /**
+     * @brief 미리보기에서 이전 카드로 이동
+     */
+    const handlePrevPreview = (): void =>
+    {
+        if (nPreviewIndex > 0)
+        {
+            cardFlipAnim.setValue(0);
+            setPreviewIndex((prev) => prev - 1);
+        }
+    };
+
+    /**
+     * @brief 미리보기 건너뛰기
+     */
+    const handleSkipPreview = (): void =>
+    {
+        setPhase('quiz');
+    };
+
+    /**
+     * @brief 미리보기 카드 발음 재생
+     */
+    const handlePreviewSpeak = (szHanzi: string): void =>
+    {
+        if (settings.bSoundEnabled)
+        {
+            Speech.speak(szHanzi, {
+                language: 'zh-CN',
+                rate: 0.8,
+            });
+        }
     };
 
     const handleReplaySound = (): void =>
@@ -365,7 +516,7 @@ export default function QuizScreen(): React.JSX.Element
     };
 
     // 로딩 중
-    if (aQuestions.length === 0)
+    if (aQuestions.length === 0 && aNewWords.length === 0)
     {
         return (
             <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -376,8 +527,138 @@ export default function QuizScreen(): React.JSX.Element
         );
     }
 
+    // 미리보기 단계
+    if (szPhase === 'preview' && aNewWords.length > 0)
+    {
+        const stCurrentWord = aNewWords[nPreviewIndex];
+
+        return (
+            <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+                {/* 헤더 */}
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={handleFinish}>
+                        <Text style={[styles.closeButton, { color: colors.textSecondary }]}>✕</Text>
+                    </TouchableOpacity>
+                    <View style={[styles.progressIndicator, { backgroundColor: colors.surface }]}>
+                        <Text style={[styles.progressText, { color: colors.text }]}>
+                            새 단어 {nPreviewIndex + 1} / {aNewWords.length}
+                        </Text>
+                    </View>
+                    <TouchableOpacity onPress={handleSkipPreview}>
+                        <Text style={[styles.skipButton, { color: colors.primary }]}>건너뛰기</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* 프로그레스 바 */}
+                <View style={[styles.progressBar, { backgroundColor: colors.surface }]}>
+                    <View
+                        style={[
+                            styles.progressFill,
+                            {
+                                width: `${((nPreviewIndex + 1) / aNewWords.length) * 100}%`,
+                                backgroundColor: colors.accent,
+                            },
+                        ]}
+                    />
+                </View>
+
+                {/* 단어 카드 */}
+                <View style={styles.previewContainer}>
+                    <Text style={[styles.previewLabel, { color: colors.textSecondary }]}>
+                        오늘의 새 단어를 먼저 훑어보세요
+                    </Text>
+
+                    <View style={[styles.wordCard, { backgroundColor: colors.surface }]}>
+                        <View
+                            style={[
+                                styles.cardLevelBadge,
+                                { backgroundColor: getHskLevelColor(stCurrentWord.nLevel, colors) },
+                            ]}
+                        >
+                            <Text style={styles.cardLevelText}>HSK {stCurrentWord.nLevel}</Text>
+                        </View>
+
+                        <TouchableOpacity
+                            onPress={() => handlePreviewSpeak(stCurrentWord.szHanzi)}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={[styles.cardHanzi, { color: colors.text }]}>
+                                {stCurrentWord.szHanzi}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <Text style={[styles.cardPinyin, { color: colors.primary }]}>
+                            {stCurrentWord.szPinyin}
+                        </Text>
+
+                        <Text style={[styles.cardMeaning, { color: colors.textSecondary }]}>
+                            {stCurrentWord.szMeaning}
+                        </Text>
+
+                        {stCurrentWord.szExample && (
+                            <View style={[styles.cardExample, { backgroundColor: colors.surfaceLight }]}>
+                                <Text style={[styles.cardExampleText, { color: colors.text }]}>
+                                    {stCurrentWord.szExample}
+                                </Text>
+                                <Text style={[styles.cardExamplePinyin, { color: colors.primary }]}>
+                                    {stCurrentWord.szExamplePinyin}
+                                </Text>
+                                <Text style={[styles.cardExampleMeaning, { color: colors.textSecondary }]}>
+                                    {stCurrentWord.szExampleMeaning}
+                                </Text>
+                            </View>
+                        )}
+
+                        <TouchableOpacity
+                            style={[styles.speakButton, { backgroundColor: colors.surfaceLight }]}
+                            onPress={() => handlePreviewSpeak(stCurrentWord.szHanzi)}
+                        >
+                            <Text style={[styles.speakButtonText, { color: colors.primary }]}>
+                                🔊 발음 듣기
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* 네비게이션 버튼 */}
+                    <View style={styles.previewNav}>
+                        <TouchableOpacity
+                            style={[
+                                styles.prevButton,
+                                { backgroundColor: colors.surface },
+                                nPreviewIndex === 0 && styles.buttonDisabled,
+                            ]}
+                            onPress={handlePrevPreview}
+                            disabled={nPreviewIndex === 0}
+                        >
+                            <Text style={[
+                                styles.prevButtonText,
+                                { color: colors.text },
+                                nPreviewIndex === 0 && { color: colors.textMuted },
+                            ]}>
+                                ← 이전
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.nextPreviewButton, { backgroundColor: colors.primary }]}
+                            onPress={handleNextPreview}
+                        >
+                            <Text style={[styles.nextPreviewButtonText, { color: '#FFFFFF' }]}>
+                                {nPreviewIndex < aNewWords.length - 1 ? '다음 →' : '퀴즈 시작 →'}
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    <Text style={[styles.previewHint, { color: colors.textMuted }]}>
+                        복습 {nReviewCount}개 + 새 단어 {nNewCount}개 = 총 {nReviewCount + nNewCount}단어 ({aQuestions.length}문제)
+                    </Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
     // 퀴즈 완료
-    if (bQuizComplete)
+    if (szPhase === 'result')
     {
         const nAccuracy = Math.round((nCorrectCount / aQuestions.length) * 100);
         const stTodayStats = getTodayStats();
@@ -854,5 +1135,110 @@ const styles = StyleSheet.create({
     resultButtonPrimaryText: {
         fontSize: 16,
         fontWeight: '700',
+    },
+    // 미리보기 화면
+    skipButton: {
+        fontSize: 14,
+        fontWeight: '600',
+        padding: 8,
+    },
+    previewContainer: {
+        flex: 1,
+        padding: 20,
+        alignItems: 'center',
+    },
+    previewLabel: {
+        fontSize: 16,
+        marginBottom: 20,
+    },
+    wordCard: {
+        width: '100%',
+        borderRadius: 20,
+        padding: 24,
+        alignItems: 'center',
+        marginBottom: 24,
+    },
+    cardLevelBadge: {
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: 12,
+        marginBottom: 16,
+    },
+    cardLevelText: {
+        color: '#FFFFFF',
+        fontSize: 12,
+        fontWeight: '700',
+    },
+    cardHanzi: {
+        fontSize: 72,
+        fontWeight: '700',
+        marginBottom: 12,
+    },
+    cardPinyin: {
+        fontSize: 24,
+        marginBottom: 8,
+    },
+    cardMeaning: {
+        fontSize: 20,
+        marginBottom: 20,
+        textAlign: 'center',
+    },
+    cardExample: {
+        width: '100%',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 16,
+    },
+    cardExampleText: {
+        fontSize: 16,
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    cardExamplePinyin: {
+        fontSize: 14,
+        marginBottom: 4,
+        textAlign: 'center',
+    },
+    cardExampleMeaning: {
+        fontSize: 14,
+        textAlign: 'center',
+    },
+    speakButton: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 20,
+    },
+    speakButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    previewNav: {
+        flexDirection: 'row',
+        gap: 16,
+        marginBottom: 20,
+    },
+    prevButton: {
+        paddingHorizontal: 24,
+        paddingVertical: 14,
+        borderRadius: 12,
+    },
+    prevButtonText: {
+        fontSize: 16,
+        fontWeight: '600',
+    },
+    buttonDisabled: {
+        opacity: 0.5,
+    },
+    nextPreviewButton: {
+        paddingHorizontal: 32,
+        paddingVertical: 14,
+        borderRadius: 12,
+    },
+    nextPreviewButtonText: {
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    previewHint: {
+        fontSize: 14,
     },
 });

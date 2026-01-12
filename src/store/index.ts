@@ -15,8 +15,83 @@ import {
 } from '../types';
 import { allWords, getWordsByLevel, levelWordCounts } from '../data';
 
-// SRS 간격 (일 단위): 레벨별 다음 복습까지의 일수
-const SRS_INTERVALS = [0, 1, 3, 7, 14, 30];
+/**
+ * @brief SM-2 알고리즘 기반 SRS 상수
+ */
+
+// 기본 복습 간격 (일 단위): 레벨별 기준 간격 (EF로 조정됨)
+const SRS_BASE_INTERVALS = [0, 1, 3, 7, 14, 30, 60, 120, 240];
+
+// 난이도 팩터 (Easiness Factor) 설정
+const EF_DEFAULT = 2.5;   // 기본값 (쉬운 단어)
+const EF_MIN = 1.3;       // 최소값 (매우 어려운 단어)
+const EF_MAX = 2.5;       // 최대값
+
+// Leech (거머리 단어) 감지 임계값
+const LEECH_WRONG_THRESHOLD = 8;       // 총 오답 횟수 기준
+const LEECH_RATIO_THRESHOLD = 0.5;     // 오답률 기준 (50%)
+const LEECH_MIN_ATTEMPTS = 6;          // 최소 시도 횟수
+
+/**
+ * @brief SM-2 EF 조정 공식
+ * @param fCurrentEF 현재 난이도 팩터
+ * @param bCorrect 정답 여부
+ * @param nConsecutiveCorrect 연속 정답 횟수 (정답 시)
+ * @return 조정된 EF 값
+ */
+const calculateNewEF = (fCurrentEF: number, bCorrect: boolean, nConsecutiveCorrect: number): number =>
+{
+    if (bCorrect)
+    {
+        // 정답: EF 증가 (연속 정답이 많을수록 보너스)
+        const fBonus = Math.min(nConsecutiveCorrect * 0.02, 0.1);
+        return Math.min(EF_MAX, fCurrentEF + 0.1 + fBonus);
+    }
+    else
+    {
+        // 오답: EF 감소
+        return Math.max(EF_MIN, fCurrentEF - 0.2);
+    }
+};
+
+/**
+ * @brief 다음 복습 간격 계산 (SM-2 방식)
+ * @param nLevel 현재 SRS 레벨
+ * @param fEasiness 난이도 팩터
+ * @return 다음 복습까지의 일수
+ */
+const calculateInterval = (nLevel: number, fEasiness: number): number =>
+{
+    if (nLevel <= 1) return 1;
+    if (nLevel === 2) return 3;
+
+    // 레벨 3 이상: 이전 간격 × EF
+    const nBaseInterval = SRS_BASE_INTERVALS[Math.min(nLevel, SRS_BASE_INTERVALS.length - 1)];
+    return Math.round(nBaseInterval * (fEasiness / EF_DEFAULT));
+};
+
+/**
+ * @brief Leech 여부 판정
+ * @param nWrongCount 총 오답 횟수
+ * @param nCorrectCount 총 정답 횟수
+ * @return Leech 단어 여부
+ */
+const checkIsLeech = (nWrongCount: number, nCorrectCount: number): boolean =>
+{
+    const nTotalAttempts = nWrongCount + nCorrectCount;
+
+    // 조건 1: 오답 횟수가 임계값 초과
+    if (nWrongCount >= LEECH_WRONG_THRESHOLD) return true;
+
+    // 조건 2: 충분한 시도 후 오답률이 임계값 초과
+    if (nTotalAttempts >= LEECH_MIN_ATTEMPTS)
+    {
+        const fWrongRatio = nWrongCount / nTotalAttempts;
+        if (fWrongRatio > LEECH_RATIO_THRESHOLD) return true;
+    }
+
+    return false;
+};
 
 interface AppState
 {
@@ -73,6 +148,15 @@ interface AppState
 
     // 제외된 단어 ID 목록
     getExcludedWordIds: () => string[];
+
+    // Leech 단어 목록 (반복적으로 틀리는 단어)
+    getLeechWords: () => WordProgress[];
+
+    // 세션용 단어 가져오기 (복습 + 새 단어 분리)
+    getSessionWords: (nTotalCount: number) => {
+        aReviewWordIds: string[];
+        aNewWordIds: string[];
+    };
 }
 
 const getDateKey = (): string =>
@@ -124,42 +208,71 @@ export const useAppStore = create<AppState>()(
                 const stExisting = wordProgress[szWordId];
                 const bIsNew = !stExisting || stExisting.nLevel === 0;
 
+                // 기존 데이터 마이그레이션: SM-2 필드가 없으면 기본값 설정
+                const fCurrentEF = stExisting?.fEasiness ?? EF_DEFAULT;
+                const nCurrentConsecutive = stExisting?.nConsecutiveCorrect ?? 0;
+
                 let stNewProgress: WordProgress;
 
                 if (bCorrect)
                 {
+                    // 정답 처리 (SM-2)
+                    const nNewConsecutive = nCurrentConsecutive + 1;
                     const nNewLevel = stExisting
-                        ? Math.min(stExisting.nLevel + 1, SRS_INTERVALS.length - 1)
+                        ? Math.min(stExisting.nLevel + 1, SRS_BASE_INTERVALS.length - 1)
                         : 1;
 
-                    const nDaysUntilReview = SRS_INTERVALS[nNewLevel];
+                    const fNewEF = calculateNewEF(fCurrentEF, true, nNewConsecutive);
+                    const nDaysUntilReview = calculateInterval(nNewLevel, fNewEF);
+
                     const dtNext = new Date();
                     dtNext.setDate(dtNext.getDate() + nDaysUntilReview);
+
+                    const nNewCorrectCount = (stExisting?.nCorrectCount || 0) + 1;
+                    const nWrongCount = stExisting?.nWrongCount || 0;
 
                     stNewProgress = {
                         szWordId,
                         nLevel: nNewLevel,
-                        nCorrectCount: (stExisting?.nCorrectCount || 0) + 1,
-                        nWrongCount: stExisting?.nWrongCount || 0,
+                        nCorrectCount: nNewCorrectCount,
+                        nWrongCount: nWrongCount,
                         dtNextReview: dtNext.toISOString(),
                         dtLastReview: new Date().toISOString(),
-                        bMastered: nNewLevel >= SRS_INTERVALS.length - 1,
+                        bMastered: nNewLevel >= SRS_BASE_INTERVALS.length - 1,
+                        fEasiness: fNewEF,
+                        nConsecutiveCorrect: nNewConsecutive,
+                        bIsLeech: stExisting?.bIsLeech ?? false,  // 정답 시 Leech 상태 유지 (자동 해제 안함)
                     };
                 }
                 else
                 {
-                    // 오답: 레벨 1로 리셋
+                    // 오답 처리 (SM-2): 점진적 레벨 하락
+                    const nCurrentLevel = stExisting?.nLevel ?? 0;
+                    const nNewLevel = Math.max(1, nCurrentLevel - 2);  // 2단계 하락, 최소 1
+
+                    const fNewEF = calculateNewEF(fCurrentEF, false, 0);
+                    const nDaysUntilReview = calculateInterval(nNewLevel, fNewEF);
+
                     const dtNext = new Date();
-                    dtNext.setDate(dtNext.getDate() + 1);
+                    dtNext.setDate(dtNext.getDate() + nDaysUntilReview);
+
+                    const nCorrectCount = stExisting?.nCorrectCount || 0;
+                    const nNewWrongCount = (stExisting?.nWrongCount || 0) + 1;
+
+                    // Leech 여부 판정
+                    const bNewIsLeech = checkIsLeech(nNewWrongCount, nCorrectCount);
 
                     stNewProgress = {
                         szWordId,
-                        nLevel: 1,
-                        nCorrectCount: stExisting?.nCorrectCount || 0,
-                        nWrongCount: (stExisting?.nWrongCount || 0) + 1,
+                        nLevel: nNewLevel,
+                        nCorrectCount: nCorrectCount,
+                        nWrongCount: nNewWrongCount,
                         dtNextReview: dtNext.toISOString(),
                         dtLastReview: new Date().toISOString(),
                         bMastered: false,
+                        fEasiness: fNewEF,
+                        nConsecutiveCorrect: 0,  // 연속 정답 리셋
+                        bIsLeech: bNewIsLeech,
                     };
                 }
 
@@ -344,6 +457,32 @@ export const useAppStore = create<AppState>()(
             {
                 const { aExcludedWords } = get();
                 return aExcludedWords;
+            },
+
+            getLeechWords: () =>
+            {
+                const { wordProgress } = get();
+                return Object.values(wordProgress)
+                    .filter((wp) => wp.bIsLeech === true)
+                    .sort((a, b) => b.nWrongCount - a.nWrongCount);
+            },
+
+            getSessionWords: (nTotalCount: number) =>
+            {
+                const { getWordsToReview, getNewWords } = get();
+
+                // 1. 복습할 단어 가져오기 (최대 nTotalCount개)
+                const aAllReviewWords = getWordsToReview();
+                const aReviewWordIds = aAllReviewWords.slice(0, nTotalCount);
+
+                // 2. 남은 개수만큼 새 단어 가져오기
+                const nNewWordsNeeded = Math.max(0, nTotalCount - aReviewWordIds.length);
+                const aNewWordIds = getNewWords(nNewWordsNeeded);
+
+                return {
+                    aReviewWordIds,
+                    aNewWordIds,
+                };
             },
         }),
         {

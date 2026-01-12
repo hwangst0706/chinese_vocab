@@ -30,12 +30,17 @@ export interface QuizQuestion
 export interface WordProgress
 {
     szWordId: string;
-    nLevel: number;           // SRS 레벨 (0: 새 단어, 1~5: 학습 중)
-    nCorrectCount: number;    // 연속 정답 수
+    nLevel: number;           // SRS 레벨 (0: 새 단어, 1~8: 학습 중)
+    nCorrectCount: number;    // 총 정답 수
     nWrongCount: number;      // 총 오답 수
     dtNextReview: string;     // 다음 복습 날짜 (ISO string)
     dtLastReview?: string;    // 마지막 복습 날짜
     bMastered: boolean;       // 암기 완료 여부
+
+    // SM-2 알고리즘 필드
+    fEasiness: number;        // 난이도 팩터 (1.3 ~ 2.5, 기본값 2.5)
+    nConsecutiveCorrect: number;  // 연속 정답 횟수
+    bIsLeech: boolean;        // Leech 단어 여부 (반복 오답)
 }
 
 export interface DailyStats
@@ -49,7 +54,7 @@ export interface DailyStats
 
 export interface Settings
 {
-    nDailyGoal: number;       // 일일 목표 문제 수
+    nDailyGoal: number;       // 일일 목표 단어 수 (퀴즈 수 = 단어 수 × 3)
     aSelectedLevels: HskLevel[];  // 학습할 HSK 급수
     bSoundEnabled: boolean;
     bVibrationEnabled: boolean;

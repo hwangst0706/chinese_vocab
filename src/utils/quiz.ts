@@ -115,8 +115,9 @@ export function generateQuizQuestion(
 }
 
 /**
- * @brief 여러 퀴즈 문제 생성
+ * @brief 여러 퀴즈 문제 생성 (각 단어당 모든 퀴즈 유형 생성)
  * @param aWordIds 단어 ID 배열
+ * @return 단어 수 × 3 (퀴즈 유형) 개의 문제 배열
  */
 export function generateQuizQuestions(aWordIds: string[]): QuizQuestion[]
 {
@@ -126,14 +127,23 @@ export function generateQuizQuestions(aWordIds: string[]): QuizQuestion[]
         'hanzi_to_pinyin',
     ];
 
-    return aWordIds
-        .map((szWordId) =>
+    const aAllQuestions: QuizQuestion[] = [];
+
+    // 각 단어에 대해 3가지 퀴즈 유형 모두 생성
+    aWordIds.forEach((szWordId) =>
+    {
+        aQuizTypes.forEach((type) =>
         {
-            // 랜덤 퀴즈 타입 선택
-            const type = aQuizTypes[Math.floor(Math.random() * aQuizTypes.length)];
-            return generateQuizQuestion(szWordId, type);
-        })
-        .filter((q): q is QuizQuestion => q !== null);
+            const stQuestion = generateQuizQuestion(szWordId, type);
+            if (stQuestion)
+            {
+                aAllQuestions.push(stQuestion);
+            }
+        });
+    });
+
+    // 전체 문제 셔플 (같은 단어가 연속으로 나오지 않도록)
+    return aAllQuestions.sort(() => Math.random() - 0.5);
 }
 
 /**
