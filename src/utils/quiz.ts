@@ -87,6 +87,17 @@ export function generateQuizQuestion(
     const stWord = getWordById(szWordId);
     if (!stWord) return null;
 
+    // 타이핑 퀴즈 (인출형)
+    if (type === 'meaning_to_pinyin')
+    {
+        return {
+            stWord,
+            type,
+            szCorrectAnswer: stWord.szPinyin,
+        };
+    }
+
+    // 선택형 퀴즈
     let szField: 'szMeaning' | 'szHanzi' | 'szPinyin';
 
     switch (type)
@@ -115,24 +126,33 @@ export function generateQuizQuestion(
 }
 
 /**
- * @brief 여러 퀴즈 문제 생성 (각 단어당 모든 퀴즈 유형 생성)
+ * @brief 여러 퀴즈 문제 생성 (인출 중심 학습)
  * @param aWordIds 단어 ID 배열
  * @return 단어 수 × 3 (퀴즈 유형) 개의 문제 배열
+ *
+ * 퀴즈 비중 (인출 70% 이상 목표):
+ * - meaning_to_pinyin (뜻→병음 타이핑): 인출형, 가장 어려움
+ * - meaning_to_hanzi (뜻→한자 선택): 반인출형
+ * - hanzi_to_meaning (한자→뜻 선택): 재인형
  */
 export function generateQuizQuestions(aWordIds: string[]): QuizQuestion[]
 {
-    const aQuizTypes: QuizType[] = [
-        'hanzi_to_meaning',
-        'meaning_to_hanzi',
-        'hanzi_to_pinyin',
+    // 각 단어당 3문제: 인출형 2개 + 재인형 1개
+    // - meaning_to_pinyin (타이핑): 인출
+    // - meaning_to_hanzi (선택): 반인출
+    // - hanzi_to_meaning (선택): 재인
+    const aQuizTypesPerWord: QuizType[] = [
+        'meaning_to_pinyin',   // 인출: 뜻 보고 병음 타이핑
+        'meaning_to_hanzi',    // 반인출: 뜻 보고 한자 선택
+        'hanzi_to_meaning',    // 재인: 한자 보고 뜻 선택
     ];
 
     const aAllQuestions: QuizQuestion[] = [];
 
-    // 각 단어에 대해 3가지 퀴즈 유형 모두 생성
+    // 각 단어에 대해 3가지 퀴즈 유형 생성
     aWordIds.forEach((szWordId) =>
     {
-        aQuizTypes.forEach((type) =>
+        aQuizTypesPerWord.forEach((type) =>
         {
             const stQuestion = generateQuizQuestion(szWordId, type);
             if (stQuestion)
@@ -159,6 +179,8 @@ export function getQuizTypeName(type: QuizType): string
             return '뜻 → 한자';
         case 'hanzi_to_pinyin':
             return '한자 → 병음';
+        case 'meaning_to_pinyin':
+            return '뜻 → 병음 (타이핑)';
         default:
             return '퀴즈';
     }
@@ -177,6 +199,8 @@ export function getQuestionText(stQuestion: QuizQuestion): string
             return `"${stQuestion.stWord.szMeaning}"에 해당하는 한자는?`;
         case 'hanzi_to_pinyin':
             return `"${stQuestion.stWord.szHanzi}"의 병음은?`;
+        case 'meaning_to_pinyin':
+            return `"${stQuestion.stWord.szMeaning}"의 병음을 입력하세요`;
         default:
             return '';
     }
@@ -193,10 +217,19 @@ export function getQuestionDisplay(stQuestion: QuizQuestion): string
         case 'hanzi_to_pinyin':
             return stQuestion.stWord.szHanzi;
         case 'meaning_to_hanzi':
+        case 'meaning_to_pinyin':
             return stQuestion.stWord.szMeaning;
         default:
             return '';
     }
+}
+
+/**
+ * @brief 타이핑 퀴즈 여부 확인
+ */
+export function isTypingQuiz(type: QuizType): boolean
+{
+    return type === 'meaning_to_pinyin';
 }
 
 // ============================================================
@@ -339,9 +372,57 @@ export function getReviewQuizTypeName(type: ReviewQuizType): string
 }
 
 /**
- * @brief 병음 정답 비교 (성조 부호 무시 옵션)
- * @param szInput 사용자 입력
- * @param szCorrect 정답 병음
+ * @brief 병음을 기본 문자와 성조 배열로 분리
+ * @param szPinyin 병음 (성조 부호 또는 숫자 형식)
+ * @return { base: 기본 병음, tones: 성조 배열 }
+ */
+function parsePinyin(szPinyin: string): { base: string; tones: number[] }
+{
+    const toneMarkMap: Record<string, { base: string; tone: number }> = {
+        'ā': { base: 'a', tone: 1 }, 'á': { base: 'a', tone: 2 },
+        'ǎ': { base: 'a', tone: 3 }, 'à': { base: 'a', tone: 4 },
+        'ē': { base: 'e', tone: 1 }, 'é': { base: 'e', tone: 2 },
+        'ě': { base: 'e', tone: 3 }, 'è': { base: 'e', tone: 4 },
+        'ī': { base: 'i', tone: 1 }, 'í': { base: 'i', tone: 2 },
+        'ǐ': { base: 'i', tone: 3 }, 'ì': { base: 'i', tone: 4 },
+        'ō': { base: 'o', tone: 1 }, 'ó': { base: 'o', tone: 2 },
+        'ǒ': { base: 'o', tone: 3 }, 'ò': { base: 'o', tone: 4 },
+        'ū': { base: 'u', tone: 1 }, 'ú': { base: 'u', tone: 2 },
+        'ǔ': { base: 'u', tone: 3 }, 'ù': { base: 'u', tone: 4 },
+        'ǖ': { base: 'v', tone: 1 }, 'ǘ': { base: 'v', tone: 2 },
+        'ǚ': { base: 'v', tone: 3 }, 'ǜ': { base: 'v', tone: 4 },
+        'ü': { base: 'v', tone: 0 },
+    };
+
+    let base = '';
+    const tones: number[] = [];
+
+    for (const char of szPinyin)
+    {
+        const mapped = toneMarkMap[char];
+        if (mapped)
+        {
+            base += mapped.base;
+            if (mapped.tone > 0) tones.push(mapped.tone);
+        }
+        else if (char >= '1' && char <= '4')
+        {
+            // 숫자 성조
+            tones.push(parseInt(char, 10));
+        }
+        else
+        {
+            base += char;
+        }
+    }
+
+    return { base, tones };
+}
+
+/**
+ * @brief 병음 정답 비교 (성조 부호/숫자 성조 모두 지원)
+ * @param szInput 사용자 입력 (kuài, kuai4, gōngsī, gong1si1 등)
+ * @param szCorrect 정답 병음 (보통 성조 부호 형식)
  * @param bIgnoreTone 성조 무시 여부
  */
 export function comparePinyin(
@@ -350,24 +431,39 @@ export function comparePinyin(
     bIgnoreTone: boolean = false
 ): boolean
 {
-    const normalize = (s: string): string =>
-    {
-        let result = s.toLowerCase().trim();
-        if (bIgnoreTone)
-        {
-            // 성조 부호를 기본 알파벳으로 변환
-            const toneMap: Record<string, string> = {
-                'ā': 'a', 'á': 'a', 'ǎ': 'a', 'à': 'a',
-                'ē': 'e', 'é': 'e', 'ě': 'e', 'è': 'e',
-                'ī': 'i', 'í': 'i', 'ǐ': 'i', 'ì': 'i',
-                'ō': 'o', 'ó': 'o', 'ǒ': 'o', 'ò': 'o',
-                'ū': 'u', 'ú': 'u', 'ǔ': 'u', 'ù': 'u',
-                'ǖ': 'v', 'ǘ': 'v', 'ǚ': 'v', 'ǜ': 'v', 'ü': 'v',
-            };
-            result = result.split('').map(c => toneMap[c] || c).join('');
-        }
-        return result;
-    };
+    // 공백 제거 및 소문자 변환
+    const szNormalizedInput = szInput.toLowerCase().trim().replace(/\s+/g, '');
+    const szNormalizedCorrect = szCorrect.toLowerCase().trim().replace(/\s+/g, '');
 
-    return normalize(szInput) === normalize(szCorrect);
+    // 기본 문자와 성조 분리
+    const stInputParsed = parsePinyin(szNormalizedInput);
+    const stCorrectParsed = parsePinyin(szNormalizedCorrect);
+
+    // 기본 병음 비교
+    if (stInputParsed.base !== stCorrectParsed.base)
+    {
+        return false;
+    }
+
+    // 성조 무시 모드면 기본 병음만 일치하면 정답
+    if (bIgnoreTone)
+    {
+        return true;
+    }
+
+    // 성조 비교 (순서와 값 모두 일치해야 함)
+    if (stInputParsed.tones.length !== stCorrectParsed.tones.length)
+    {
+        return false;
+    }
+
+    for (let i = 0; i < stInputParsed.tones.length; i++)
+    {
+        if (stInputParsed.tones[i] !== stCorrectParsed.tones[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
 }

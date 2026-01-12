@@ -13,6 +13,8 @@ import {
     ScrollView,
     Easing,
     Alert,
+    TextInput,
+    Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -27,6 +29,8 @@ import {
     getQuestionText,
     getQuestionDisplay,
     getQuizTypeName,
+    isTypingQuiz,
+    comparePinyin,
 } from '../utils/quiz';
 
 type LearningPhase = 'preview' | 'quiz' | 'result';
@@ -189,6 +193,10 @@ export default function QuizScreen(): React.JSX.Element
     const [bShowResult, setShowResult] = useState(false);
     const [nCorrectCount, setCorrectCount] = useState(0);
 
+    // 타이핑 퀴즈 상태
+    const [szTypedAnswer, setTypedAnswer] = useState('');
+    const [bTypingCorrect, setTypingCorrect] = useState<boolean | null>(null);
+
     // 세션 정보
     const [nReviewCount, setReviewCount] = useState(0);
     const [nNewCount, setNewCount] = useState(0);
@@ -297,6 +305,8 @@ export default function QuizScreen(): React.JSX.Element
         setSelectedOption(null);
         setShowResult(false);
         setCorrectCount(0);
+        setTypedAnswer('');
+        setTypingCorrect(null);
         progressAnim.setValue(0);
 
         // 상황별 알림 처리
@@ -413,6 +423,53 @@ export default function QuizScreen(): React.JSX.Element
         }
     };
 
+    /**
+     * @brief 타이핑 퀴즈 제출 핸들러
+     */
+    const handleSubmitTyping = (): void =>
+    {
+        if (bShowResult || !stCurrentQuestion?.szCorrectAnswer) return;
+
+        Keyboard.dismiss();
+        setShowResult(true);
+
+        // 성조 엄격 모드에 따라 비교
+        const bIgnoreTone = !settings.bToneStrictMode;
+        const bIsCorrect = comparePinyin(szTypedAnswer, stCurrentQuestion.szCorrectAnswer, bIgnoreTone);
+
+        setTypingCorrect(bIsCorrect);
+
+        // 진동 피드백
+        if (settings.bVibrationEnabled)
+        {
+            if (bIsCorrect)
+            {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+            }
+            else
+            {
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+            }
+        }
+
+        // TTS: 정답 병음 읽어주기
+        if (settings.bSoundEnabled)
+        {
+            Speech.speak(stCurrentQuestion.stWord.szHanzi, {
+                language: 'zh-CN',
+                rate: 0.8,
+            });
+        }
+
+        // 진도 업데이트
+        updateWordProgress(stCurrentQuestion.stWord.szId, bIsCorrect);
+
+        if (bIsCorrect)
+        {
+            setCorrectCount((prev) => prev + 1);
+        }
+    };
+
     const handleNext = (): void =>
     {
         if (nCurrentIndex < aQuestions.length - 1)
@@ -436,6 +493,8 @@ export default function QuizScreen(): React.JSX.Element
                 setCurrentIndex((prev) => prev + 1);
                 setSelectedOption(null);
                 setShowResult(false);
+                setTypedAnswer('');
+                setTypingCorrect(null);
             }, 150);
         }
         else
@@ -865,30 +924,83 @@ export default function QuizScreen(): React.JSX.Element
                         {getQuestionDisplay(stCurrentQuestion)}
                     </Text>
                     {stCurrentQuestion.type !== 'meaning_to_hanzi' &&
-                        stCurrentQuestion.type !== 'hanzi_to_pinyin' && (
+                        stCurrentQuestion.type !== 'hanzi_to_pinyin' &&
+                        stCurrentQuestion.type !== 'meaning_to_pinyin' && (
                         <Text style={[styles.questionPinyin, { color: colors.textSecondary }]}>
                             {(settings.bShowPinyin || bShowResult)
                                 ? stCurrentQuestion.stWord.szPinyin
                                 : ''}
                         </Text>
                     )}
+                    {/* 타이핑 퀴즈: 한자 힌트 표시 */}
+                    {isTypingQuiz(stCurrentQuestion.type) && (
+                        <Text style={[styles.questionHanzi, { color: colors.textMuted }]}>
+                            {stCurrentQuestion.stWord.szHanzi}
+                        </Text>
+                    )}
                 </View>
 
-                {/* 선택지 (애니메이션 버튼) */}
-                <View style={styles.optionsContainer}>
-                    {stCurrentQuestion.aOptions.map((szOption, nIndex) => (
-                        <AnimatedOptionButton
-                            key={`${nCurrentIndex}-${nIndex}`}
-                            szOption={szOption}
-                            nIndex={nIndex}
-                            bIsCorrect={nIndex === stCurrentQuestion.nCorrectIndex}
-                            bIsSelected={nIndex === nSelectedOption}
-                            bShowResult={bShowResult}
-                            colors={colors}
-                            onPress={() => handleSelectOption(nIndex)}
+                {/* 타이핑 퀴즈 입력 */}
+                {isTypingQuiz(stCurrentQuestion.type) ? (
+                    <View style={styles.typingContainer}>
+                        <TextInput
+                            style={[
+                                styles.typingInput,
+                                { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border },
+                                bShowResult && bTypingCorrect && { borderColor: colors.correct },
+                                bShowResult && !bTypingCorrect && { borderColor: colors.wrong },
+                            ]}
+                            value={szTypedAnswer}
+                            onChangeText={setTypedAnswer}
+                            placeholder="병음을 입력하세요 (예: nǐ hǎo)"
+                            placeholderTextColor={colors.textMuted}
+                            autoCapitalize="none"
+                            autoCorrect={false}
+                            editable={!bShowResult}
+                            onSubmitEditing={handleSubmitTyping}
+                            returnKeyType="done"
                         />
-                    ))}
-                </View>
+                        <Text style={[styles.typingHint, { color: colors.textMuted }]}>
+                            {settings.bToneStrictMode
+                                ? '성조 포함 입력 (nǐ hǎo 또는 ni3 hao3)'
+                                : '성조 없이 입력 가능 (ni hao)'}
+                        </Text>
+                        {!bShowResult && (
+                            <TouchableOpacity
+                                style={[
+                                    styles.submitButton,
+                                    { backgroundColor: szTypedAnswer.trim() ? colors.primary : colors.surfaceLight },
+                                ]}
+                                onPress={handleSubmitTyping}
+                                disabled={!szTypedAnswer.trim()}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={[
+                                    styles.submitButtonText,
+                                    { color: szTypedAnswer.trim() ? '#FFFFFF' : colors.textMuted },
+                                ]}>
+                                    확인
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                ) : (
+                    /* 선택지 (애니메이션 버튼) */
+                    <View style={styles.optionsContainer}>
+                        {stCurrentQuestion.aOptions?.map((szOption, nIndex) => (
+                            <AnimatedOptionButton
+                                key={`${nCurrentIndex}-${nIndex}`}
+                                szOption={szOption}
+                                nIndex={nIndex}
+                                bIsCorrect={nIndex === stCurrentQuestion.nCorrectIndex}
+                                bIsSelected={nIndex === nSelectedOption}
+                                bShowResult={bShowResult}
+                                colors={colors}
+                                onPress={() => handleSelectOption(nIndex)}
+                            />
+                        ))}
+                    </View>
+                )}
 
                 {/* 결과 & 다음 버튼 (슬라이드업 애니메이션) */}
                 {bShowResult && (
@@ -911,14 +1023,20 @@ export default function QuizScreen(): React.JSX.Element
                         <Text
                             style={[
                                 styles.feedbackText,
-                                nSelectedOption === stCurrentQuestion.nCorrectIndex
-                                    ? { color: colors.correct }
-                                    : { color: colors.wrong },
+                                isTypingQuiz(stCurrentQuestion.type)
+                                    ? (bTypingCorrect ? { color: colors.correct } : { color: colors.wrong })
+                                    : (nSelectedOption === stCurrentQuestion.nCorrectIndex
+                                        ? { color: colors.correct }
+                                        : { color: colors.wrong }),
                             ]}
                         >
-                            {nSelectedOption === stCurrentQuestion.nCorrectIndex
-                                ? '정답입니다! 👏'
-                                : `오답! 정답: ${stCurrentQuestion.aOptions[stCurrentQuestion.nCorrectIndex]}`}
+                            {isTypingQuiz(stCurrentQuestion.type)
+                                ? (bTypingCorrect
+                                    ? '정답입니다! 👏'
+                                    : `오답! 정답: ${stCurrentQuestion.szCorrectAnswer}`)
+                                : (nSelectedOption === stCurrentQuestion.nCorrectIndex
+                                    ? '정답입니다! 👏'
+                                    : `오답! 정답: ${stCurrentQuestion.aOptions?.[stCurrentQuestion.nCorrectIndex ?? 0]}`)}
                         </Text>
 
                         {/* 다시듣기 버튼 */}
@@ -1078,6 +1196,34 @@ const styles = StyleSheet.create({
     questionPinyin: {
         fontSize: 20,
         height: 28,
+    },
+    questionHanzi: {
+        fontSize: 24,
+        marginTop: 8,
+    },
+    // 타이핑 퀴즈 스타일
+    typingContainer: {
+        gap: 16,
+    },
+    typingInput: {
+        borderRadius: 16,
+        padding: 18,
+        fontSize: 20,
+        textAlign: 'center',
+        borderWidth: 2,
+    },
+    typingHint: {
+        fontSize: 12,
+        textAlign: 'center',
+    },
+    submitButton: {
+        borderRadius: 12,
+        paddingVertical: 16,
+        alignItems: 'center',
+    },
+    submitButtonText: {
+        fontSize: 18,
+        fontWeight: '700',
     },
     optionsContainer: {
         gap: 12,

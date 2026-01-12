@@ -17,7 +17,13 @@ export interface Word
     szExampleMeaning?: string;
 }
 
-export type QuizType = 'hanzi_to_meaning' | 'meaning_to_hanzi' | 'hanzi_to_pinyin';
+// 선택형 퀴즈: 4지선다
+// 입력형 퀴즈: 타이핑 (인출 훈련)
+export type QuizType =
+    | 'hanzi_to_meaning'     // 한자 → 뜻 선택 (재인)
+    | 'meaning_to_hanzi'     // 뜻 → 한자 선택 (재인)
+    | 'hanzi_to_pinyin'      // 한자 → 병음 선택 (재인)
+    | 'meaning_to_pinyin';   // 뜻 → 병음 타이핑 (인출, Production)
 
 // 복습 테스트 전용 퀴즈 타입
 export type ReviewQuizType = 'fill_blank' | 'listening' | 'pinyin_typing';
@@ -39,8 +45,11 @@ export interface QuizQuestion
 {
     stWord: Word;
     type: QuizType;
-    aOptions: string[];
-    nCorrectIndex: number;
+    // 선택형 퀴즈용
+    aOptions?: string[];
+    nCorrectIndex?: number;
+    // 타이핑 퀴즈용 (meaning_to_pinyin)
+    szCorrectAnswer?: string;
 }
 
 export interface WordProgress
@@ -76,6 +85,7 @@ export interface Settings
     bVibrationEnabled: boolean;
     bNotificationEnabled: boolean;
     bShowPinyin: boolean;     // 퀴즈 중 병음 표시 (병음 퀴즈 제외)
+    bToneStrictMode: boolean; // 성조 엄격 모드 (병음 입력 시 성조 필수)
 }
 
 export interface LevelStats

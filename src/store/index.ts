@@ -230,6 +230,7 @@ export const useAppStore = create<AppState>()(
                 bVibrationEnabled: true,
                 bNotificationEnabled: true,
                 bShowPinyin: true,
+                bToneStrictMode: false,
             },
 
             aExcludedWords: [],

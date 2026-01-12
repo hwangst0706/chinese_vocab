@@ -297,7 +297,7 @@ export default function SettingsScreen(): React.JSX.Element
                 <View style={[styles.section, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
                     <Text style={[styles.sectionTitle, { color: colors.text }]}>퀴즈 설정</Text>
 
-                    <View style={[styles.settingRow, { borderBottomColor: 'transparent' }]}>
+                    <View style={[styles.settingRow, { borderBottomColor: colors.border }]}>
                         <View style={styles.settingInfo}>
                             <Text style={[styles.label, { color: colors.text }]}>병음 표시</Text>
                             <Text style={[styles.settingDescription, { color: colors.textMuted }]}>
@@ -307,6 +307,21 @@ export default function SettingsScreen(): React.JSX.Element
                         <Switch
                             value={settings.bShowPinyin}
                             onValueChange={(bValue) => updateSettings({ bShowPinyin: bValue })}
+                            trackColor={{ false: colors.surfaceLight, true: colors.primary }}
+                            thumbColor="#FFFFFF"
+                        />
+                    </View>
+
+                    <View style={[styles.settingRow, { borderBottomColor: 'transparent' }]}>
+                        <View style={styles.settingInfo}>
+                            <Text style={[styles.label, { color: colors.text }]}>성조 엄격 모드</Text>
+                            <Text style={[styles.settingDescription, { color: colors.textMuted }]}>
+                                병음 입력 시 성조까지 정확히 입력해야{'\n'}정답으로 인정합니다 (예: nǐ hǎo, ni3 hao3)
+                            </Text>
+                        </View>
+                        <Switch
+                            value={settings.bToneStrictMode}
+                            onValueChange={(bValue) => updateSettings({ bToneStrictMode: bValue })}
                             trackColor={{ false: colors.surfaceLight, true: colors.primary }}
                             thumbColor="#FFFFFF"
                         />
@@ -414,7 +429,7 @@ export default function SettingsScreen(): React.JSX.Element
 
                 {/* 앱 정보 */}
                 <View style={styles.appInfo}>
-                    <Text style={[styles.appInfoText, { color: colors.textMuted }]}>HSK 단어 암기 v1.7.1</Text>
+                    <Text style={[styles.appInfoText, { color: colors.textMuted }]}>HSK 단어 암기 v1.8.0</Text>
                     <Text style={[styles.appInfoText, { color: colors.textMuted }]}>
                         HSK 1~4급 총 {levelWordCounts[1] + levelWordCounts[2] + levelWordCounts[3] + levelWordCounts[4]}개 단어
                     </Text>
