@@ -898,16 +898,24 @@ export default function QuizScreen(): React.JSX.Element
                                     : '이 단어 퀴즈에서 제외'}
                             </Text>
                         </TouchableOpacity>
-
-                        <TouchableOpacity style={[styles.nextButton, { backgroundColor: colors.primary }]} onPress={handleNext}>
-                            <Text style={[styles.nextButtonText, { color: colors.text }]}>
-                                {nCurrentIndex < aQuestions.length - 1 ? '다음' : '결과 보기'}
-                            </Text>
-                        </TouchableOpacity>
                     </Animated.View>
                     )}
                 </Animated.View>
             </ScrollView>
+
+            {/* 하단 고정 버튼 */}
+            {bShowResult && (
+                <View style={[styles.bottomButtonContainer, { backgroundColor: colors.background }]}>
+                    <TouchableOpacity
+                        style={[styles.nextButton, styles.nextButtonFixed, { backgroundColor: colors.primary }]}
+                        onPress={handleNext}
+                    >
+                        <Text style={[styles.nextButtonText, { color: '#FFFFFF' }]}>
+                            {nCurrentIndex < aQuestions.length - 1 ? '다음 →' : '결과 보기'}
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+            )}
         </SafeAreaView>
     );
 }
@@ -1069,9 +1077,20 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         paddingHorizontal: 48,
     },
+    nextButtonFixed: {
+        width: '100%',
+        alignItems: 'center',
+    },
     nextButtonText: {
         fontSize: 18,
         fontWeight: '700',
+    },
+    bottomButtonContainer: {
+        paddingHorizontal: 20,
+        paddingVertical: 16,
+        paddingBottom: 20,
+        borderTopWidth: 1,
+        borderTopColor: 'rgba(0,0,0,0.1)',
     },
     // 결과 화면
     resultContainer: {
