@@ -168,6 +168,7 @@ export default function QuizScreen(): React.JSX.Element
     const {
         settings,
         getSessionWords,
+        getNewWords,
         updateWordProgress,
         getTodayStats,
         toggleWordExclusion,
@@ -504,6 +505,63 @@ export default function QuizScreen(): React.JSX.Element
         }
     };
 
+    /**
+     * @brief "알고있어요" 버튼 - 단어 제외 및 대체 단어 추가
+     */
+    const handleKnowWord = (): void =>
+    {
+        if (aNewWords.length === 0) return;
+
+        const stCurrentWord = aNewWords[nPreviewIndex];
+
+        // 1. 현재 단어를 제외 목록에 추가
+        toggleWordExclusion(stCurrentWord.szId);
+
+        // 2. 대체할 새 단어 1개 가져오기
+        const aReplacementIds = getNewWords(1);
+        const stReplacementWord = aReplacementIds.length > 0
+            ? getWordById(aReplacementIds[0])
+            : null;
+
+        // 3. 새 단어 목록 업데이트
+        const aUpdatedNewWords = aNewWords.filter((w) => w.szId !== stCurrentWord.szId);
+        if (stReplacementWord)
+        {
+            aUpdatedNewWords.push(stReplacementWord);
+        }
+        setNewWords(aUpdatedNewWords);
+        setNewCount(aUpdatedNewWords.length);
+
+        // 4. 퀴즈 목록에서 제외된 단어 제거하고 대체 단어 추가
+        const aUpdatedQuestions = aQuestions.filter(
+            (q) => q.stWord.szId !== stCurrentWord.szId
+        );
+        if (stReplacementWord)
+        {
+            const aNewQuestions = generateQuizQuestions([stReplacementWord.szId]);
+            aUpdatedQuestions.push(...aNewQuestions);
+        }
+        // 셔플
+        setQuestions(aUpdatedQuestions.sort(() => Math.random() - 0.5));
+
+        // 5. 인덱스 조정 (마지막 카드였으면 이전으로)
+        if (nPreviewIndex >= aUpdatedNewWords.length && aUpdatedNewWords.length > 0)
+        {
+            setPreviewIndex(aUpdatedNewWords.length - 1);
+        }
+        else if (aUpdatedNewWords.length === 0)
+        {
+            // 새 단어가 모두 없어지면 퀴즈로
+            setPhase('quiz');
+        }
+
+        // 햅틱 피드백
+        if (settings.bVibrationEnabled)
+        {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+    };
+
     const handleReplaySound = (): void =>
     {
         if (stCurrentQuestion)
@@ -609,14 +667,25 @@ export default function QuizScreen(): React.JSX.Element
                             </View>
                         )}
 
-                        <TouchableOpacity
-                            style={[styles.speakButton, { backgroundColor: colors.surfaceLight }]}
-                            onPress={() => handlePreviewSpeak(stCurrentWord.szHanzi)}
-                        >
-                            <Text style={[styles.speakButtonText, { color: colors.primary }]}>
-                                🔊 발음 듣기
-                            </Text>
-                        </TouchableOpacity>
+                        <View style={styles.cardButtonRow}>
+                            <TouchableOpacity
+                                style={[styles.speakButton, { backgroundColor: colors.surfaceLight }]}
+                                onPress={() => handlePreviewSpeak(stCurrentWord.szHanzi)}
+                            >
+                                <Text style={[styles.speakButtonText, { color: colors.primary }]}>
+                                    🔊 발음 듣기
+                                </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={[styles.knowButton, { backgroundColor: colors.correct + '20', borderColor: colors.correct }]}
+                                onPress={handleKnowWord}
+                            >
+                                <Text style={[styles.knowButtonText, { color: colors.correct }]}>
+                                    ✓ 알고있어요
+                                </Text>
+                            </TouchableOpacity>
+                        </View>
                     </View>
 
                     {/* 네비게이션 버튼 */}
@@ -1222,13 +1291,27 @@ const styles = StyleSheet.create({
         fontSize: 14,
         textAlign: 'center',
     },
+    cardButtonRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
     speakButton: {
-        paddingHorizontal: 20,
-        paddingVertical: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
         borderRadius: 20,
     },
     speakButtonText: {
-        fontSize: 16,
+        fontSize: 14,
+        fontWeight: '600',
+    },
+    knowButton: {
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 20,
+        borderWidth: 1,
+    },
+    knowButtonText: {
+        fontSize: 14,
         fontWeight: '600',
     },
     previewNav: {
