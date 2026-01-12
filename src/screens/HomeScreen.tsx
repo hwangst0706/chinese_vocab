@@ -3,7 +3,7 @@
  * @brief 메인 홈 화면 - 일일 목표, 퀴즈 시작
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import {
     View,
     Text,
@@ -16,6 +16,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useTheme, getHskLevelColor } from '../contexts/ThemeContext';
 import { useAppStore } from '../store';
 import { HskLevel } from '../types';
+import CalendarModal from '../components/CalendarModal';
 
 export default function HomeScreen(): React.JSX.Element
 {
@@ -40,6 +41,8 @@ export default function HomeScreen(): React.JSX.Element
     const nDaysUntilTest = getDaysUntilReviewTest();
     const nCurrentStreak = getCurrentStreak();
     const nLongestStreak = getLongestStreak();
+
+    const [bShowCalendar, setShowCalendar] = useState(false);
 
     // 단어 수 기준 진도 계산 (퀴즈 3개 = 단어 1개)
     const nTotalQuizCount = settings.nDailyGoal * 3;
@@ -74,7 +77,11 @@ export default function HomeScreen(): React.JSX.Element
                 </View>
 
                 {/* 연속 학습 카드 */}
-                <View style={[styles.streakCard, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
+                <TouchableOpacity
+                    style={[styles.streakCard, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}
+                    onPress={() => setShowCalendar(true)}
+                    activeOpacity={0.8}
+                >
                     <View style={styles.streakMain}>
                         <Text style={styles.streakFireIcon}>🔥</Text>
                         <View style={styles.streakInfo}>
@@ -127,7 +134,12 @@ export default function HomeScreen(): React.JSX.Element
                             );
                         })}
                     </View>
-                </View>
+
+                    {/* 달력 보기 힌트 */}
+                    <Text style={[styles.streakHint, { color: colors.textMuted }]}>
+                        탭하여 월별 현황 보기
+                    </Text>
+                </TouchableOpacity>
 
                 {/* 일일 목표 카드 */}
                 <View style={[styles.dailyCard, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
@@ -268,6 +280,12 @@ export default function HomeScreen(): React.JSX.Element
                     })}
                 </View>
             </ScrollView>
+
+            {/* 달력 모달 */}
+            <CalendarModal
+                bVisible={bShowCalendar}
+                onClose={() => setShowCalendar(false)}
+            />
         </SafeAreaView>
     );
 }
@@ -500,5 +518,10 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 14,
         fontWeight: '700',
+    },
+    streakHint: {
+        fontSize: 12,
+        textAlign: 'center',
+        marginTop: 12,
     },
 });
