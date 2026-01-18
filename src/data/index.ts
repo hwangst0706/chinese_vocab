@@ -8,6 +8,7 @@ import { hsk2Words } from './hsk2';
 import { hsk3Words } from './hsk3';
 import { hsk4Words } from './hsk4';
 import { hsk5Words } from './hsk5';
+import { hsk6Words } from './hsk6';
 import { Word, HskLevel } from '../types';
 
 export const allWords: Word[] = [
@@ -16,6 +17,7 @@ export const allWords: Word[] = [
     ...hsk3Words,
     ...hsk4Words,
     ...hsk5Words,
+    ...hsk6Words,
 ];
 
 export function getWordsByLevel(nLevel: HskLevel): Word[]
@@ -44,7 +46,7 @@ export const levelWordCounts: Record<HskLevel, number> = {
     3: hsk3Words.length,
     4: hsk4Words.length,
     5: hsk5Words.length,
-    6: 0,
+    6: hsk6Words.length,
 };
 
-export { hsk1Words, hsk2Words, hsk3Words, hsk4Words, hsk5Words };
+export { hsk1Words, hsk2Words, hsk3Words, hsk4Words, hsk5Words, hsk6Words };
