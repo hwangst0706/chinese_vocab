@@ -17,7 +17,7 @@ import {
     Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import * as Speech from 'expo-speech';
 import { useTheme, getHskLevelColor } from '../contexts/ThemeContext';
@@ -35,6 +35,17 @@ import {
 import AiExamplesModal from '../components/AiExamplesModal';
 
 type LearningPhase = 'preview' | 'quiz' | 'result';
+
+// 집중 복습 모드 타입
+type FocusedMode = 'wrong_words' | 'leech_words';
+
+// Route params 타입
+type QuizRouteParams = {
+    Quiz: {
+        aFocusedWordIds?: string[];      // 집중 복습할 단어 ID 목록
+        szFocusedMode?: FocusedMode;     // 집중 복습 모드
+    };
+};
 
 // 애니메이션 버튼 컴포넌트
 interface AnimatedOptionButtonProps
@@ -169,6 +180,7 @@ function AnimatedOptionButton({
 export default function QuizScreen(): React.JSX.Element
 {
     const navigation = useNavigation<any>();
+    const route = useRoute<RouteProp<QuizRouteParams, 'Quiz'>>();
     const { colors } = useTheme();
     const {
         settings,
@@ -179,6 +191,11 @@ export default function QuizScreen(): React.JSX.Element
         toggleWordExclusion,
         isWordExcluded,
     } = useAppStore();
+
+    // 집중 복습 모드 확인
+    const aFocusedWordIds = route.params?.aFocusedWordIds;
+    const szFocusedMode = route.params?.szFocusedMode;
+    const bIsFocusedMode = !!aFocusedWordIds && aFocusedWordIds.length > 0;
 
     // Phase 관리
     const [szPhase, setPhase] = useState<LearningPhase>('preview');
@@ -286,6 +303,13 @@ export default function QuizScreen(): React.JSX.Element
      */
     const initializeSession = (): void =>
     {
+        // 집중 복습 모드 처리
+        if (bIsFocusedMode && aFocusedWordIds)
+        {
+            initializeFocusedSession();
+            return;
+        }
+
         const nQuizCount = settings.nDailyGoal;
         const { aReviewWordIds, aNewWordIds } = getSessionWords(nQuizCount);
 
@@ -359,6 +383,48 @@ export default function QuizScreen(): React.JSX.Element
         {
             setPhase('preview');
         }
+    };
+
+    /**
+     * @brief 집중 복습 세션 초기화 (오답노트/Leech 단어)
+     */
+    const initializeFocusedSession = (): void =>
+    {
+        if (!aFocusedWordIds || aFocusedWordIds.length === 0)
+        {
+            Alert.alert('알림', '복습할 단어가 없습니다.');
+            navigation.goBack();
+            return;
+        }
+
+        // 집중 복습 모드: 미리보기 없이 바로 퀴즈
+        setNewWords([]);
+        setNewCount(0);
+        setReviewCount(aFocusedWordIds.length);
+
+        // 셔플하여 퀴즈 생성
+        const aShuffledIds = [...aFocusedWordIds].sort(() => Math.random() - 0.5);
+        const aGeneratedQuestions = generateQuizQuestions(aShuffledIds);
+
+        setQuestions(aGeneratedQuestions);
+        setPreviewIndex(0);
+        setCurrentIndex(0);
+        setSelectedOption(null);
+        setShowResult(false);
+        setCorrectCount(0);
+        setTypedAnswer('');
+        setTypingCorrect(null);
+        progressAnim.setValue(0);
+
+        // 집중 복습 시작 안내
+        const szModeTitle = szFocusedMode === 'leech_words' ? 'Leech 단어 집중 복습' : '오답 단어 집중 복습';
+        Alert.alert(
+            szModeTitle,
+            `${aFocusedWordIds.length}개 단어를 집중 복습합니다.`,
+            [{ text: '시작', style: 'default' }]
+        );
+
+        setPhase('quiz');
     };
 
     const stCurrentQuestion = aQuestions[nCurrentIndex];

@@ -32,6 +32,7 @@ export default function SettingsScreen(): React.JSX.Element
         resetAllProgress,
         getExcludedWordIds,
         getMostWrongWords,
+        getLeechWords,
         reviewTestSettings,
         updateReviewTestSettings,
     } = useAppStore();
@@ -412,6 +413,25 @@ export default function SettingsScreen(): React.JSX.Element
                         </View>
                         <View style={[styles.menuButtonBadge, { backgroundColor: colors.primary }]}>
                             <Text style={styles.menuButtonBadgeText}>{getMostWrongWords().length}</Text>
+                        </View>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.menuButton, { backgroundColor: colors.surfaceLight }]}
+                        onPress={() => navigation.navigate('LeechWords')}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.menuButtonInfo}>
+                            <Text style={[styles.menuButtonText, { color: colors.text }]}>Leech 단어</Text>
+                            <Text style={[styles.menuButtonDescription, { color: colors.textSecondary }]}>
+                                반복적으로 틀리는 단어를 관리합니다
+                            </Text>
+                        </View>
+                        <View style={[
+                            styles.menuButtonBadge,
+                            { backgroundColor: getLeechWords().length > 0 ? colors.wrong : colors.primary }
+                        ]}>
+                            <Text style={styles.menuButtonBadgeText}>{getLeechWords().length}</Text>
                         </View>
                     </TouchableOpacity>
                 </View>

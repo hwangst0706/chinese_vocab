@@ -155,6 +155,9 @@ interface AppState
     // Leech 단어 목록 (반복적으로 틀리는 단어)
     getLeechWords: () => WordProgress[];
 
+    // Leech 상태 해제
+    resetLeechStatus: (szWordId: string) => void;
+
     // 세션용 단어 가져오기 (복습 + 새 단어 분리)
     getSessionWords: (nTotalCount: number) => {
         aReviewWordIds: string[];
@@ -526,6 +529,25 @@ export const useAppStore = create<AppState>()(
                 return Object.values(wordProgress)
                     .filter((wp) => wp.bIsLeech === true)
                     .sort((a, b) => b.nWrongCount - a.nWrongCount);
+            },
+
+            resetLeechStatus: (szWordId: string) =>
+            {
+                const { wordProgress } = get();
+                const stExisting = wordProgress[szWordId];
+
+                if (stExisting)
+                {
+                    set({
+                        wordProgress: {
+                            ...wordProgress,
+                            [szWordId]: {
+                                ...stExisting,
+                                bIsLeech: false,
+                            },
+                        },
+                    });
+                }
             },
 
             getSessionWords: (nTotalCount: number) =>

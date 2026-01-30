@@ -26,7 +26,7 @@ interface WrongWordItem
 
 export default function MostWrongWordsScreen(): React.JSX.Element
 {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const { colors } = useTheme();
     const { getMostWrongWords, getLeechWords } = useAppStore();
 
@@ -141,15 +141,36 @@ export default function MostWrongWordsScreen(): React.JSX.Element
             </View>
 
             <View style={styles.countContainer}>
-                <Text style={[styles.countText, { color: colors.textSecondary }]}>
-                    총 {aWrongWords.length}개 단어 (오답 횟수 순)
-                </Text>
+                <View style={styles.countRow}>
+                    <Text style={[styles.countText, { color: colors.textSecondary }]}>
+                        총 {aWrongWords.length}개 단어 (오답 횟수 순)
+                    </Text>
+                    {aWrongWords.length > 0 && (
+                        <TouchableOpacity
+                            style={[styles.focusReviewButton, { backgroundColor: colors.primary }]}
+                            onPress={() => {
+                                const aWordIds = aWrongWords.slice(0, 20).map(item => item.progress.szWordId);
+                                navigation.navigate('Quiz', {
+                                    aFocusedWordIds: aWordIds,
+                                    szFocusedMode: 'wrong_words',
+                                });
+                            }}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.focusReviewButtonText}>집중 복습</Text>
+                        </TouchableOpacity>
+                    )}
+                </View>
                 {nLeechCount > 0 && (
-                    <View style={[styles.leechWarning, { backgroundColor: colors.wrong + '20' }]}>
+                    <TouchableOpacity
+                        style={[styles.leechWarning, { backgroundColor: colors.wrong + '20' }]}
+                        onPress={() => navigation.navigate('LeechWords')}
+                        activeOpacity={0.7}
+                    >
                         <Text style={[styles.leechWarningText, { color: colors.wrong }]}>
-                            Leech 단어 {nLeechCount}개 - 다른 학습법 권장
+                            Leech 단어 {nLeechCount}개 - 탭하여 관리하기
                         </Text>
-                    </View>
+                    </TouchableOpacity>
                 )}
             </View>
 
@@ -190,8 +211,23 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingVertical: 12,
     },
+    countRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+    },
     countText: {
         fontSize: 14,
+    },
+    focusReviewButton: {
+        paddingHorizontal: 14,
+        paddingVertical: 8,
+        borderRadius: 16,
+    },
+    focusReviewButtonText: {
+        color: '#FFFFFF',
+        fontSize: 13,
+        fontWeight: '600',
     },
     leechWarning: {
         marginTop: 8,
