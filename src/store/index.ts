@@ -14,6 +14,7 @@ import {
     LevelStats,
     ReviewTestSettings,
     ReviewTestRecord,
+    QuizSession,
 } from '../types';
 import { BackupData } from '../types/backup';
 import { allWords, getWordsByLevel, levelWordCounts } from '../data';
@@ -109,6 +110,9 @@ interface AppState
 
     // 제외된 단어 (퀴즈에서 제외)
     aExcludedWords: string[];
+
+    // 저장된 퀴즈 세션 (이어하기용)
+    savedQuizSession: QuizSession | null;
 
     // 오늘 날짜 (YYYY-MM-DD)
     getTodayKey: () => string;
@@ -211,6 +215,19 @@ interface AppState
 
     // 백업 데이터 가져오기 (복원용)
     importBackupData: (stBackupData: BackupData) => void;
+
+    // ============================================================
+    // 퀴즈 세션 관련 (이어하기)
+    // ============================================================
+
+    // 퀴즈 세션 저장
+    saveQuizSession: (stSession: QuizSession) => void;
+
+    // 저장된 퀴즈 세션 가져오기 (오늘 날짜만 유효)
+    getSavedQuizSession: () => QuizSession | null;
+
+    // 퀴즈 세션 삭제
+    clearQuizSession: () => void;
 }
 
 const getDateKey = (): string =>
@@ -246,6 +263,8 @@ export const useAppStore = create<AppState>()(
             },
 
             aExcludedWords: [],
+
+            savedQuizSession: null,
 
             reviewTestSettings: {
                 nIntervalDays: 7,     // 기본 7일 주기
@@ -802,6 +821,35 @@ export const useAppStore = create<AppState>()(
                     reviewTestSettings: stBackupData.reviewTestSettings || get().reviewTestSettings,
                     aExcludedWords: stBackupData.aExcludedWords || [],
                 });
+            },
+
+            // ============================================================
+            // 퀴즈 세션 관련 구현 (이어하기)
+            // ============================================================
+
+            saveQuizSession: (stSession: QuizSession) =>
+            {
+                set({ savedQuizSession: stSession });
+            },
+
+            getSavedQuizSession: () =>
+            {
+                const { savedQuizSession } = get();
+                if (!savedQuizSession) return null;
+
+                // 오늘 날짜의 세션만 유효
+                const szToday = getDateKey();
+                if (savedQuizSession.szDate !== szToday) return null;
+
+                // 이미 완료된 세션은 무효
+                if (savedQuizSession.nCurrentIndex >= savedQuizSession.aQuestions.length) return null;
+
+                return savedQuizSession;
+            },
+
+            clearQuizSession: () =>
+            {
+                set({ savedQuizSession: null });
             },
         }),
         {

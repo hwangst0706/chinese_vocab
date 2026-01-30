@@ -19,7 +19,7 @@ function AppContent(): React.JSX.Element
     return (
         <GestureHandlerRootView style={[styles.container, { backgroundColor: colors.background }]}>
             <SafeAreaProvider>
-                <StatusBar style={isDark ? 'light' : 'dark'} backgroundColor={colors.background} />
+                <StatusBar hidden={true} />
                 <AppNavigator />
             </SafeAreaProvider>
         </GestureHandlerRootView>

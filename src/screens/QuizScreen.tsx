@@ -190,6 +190,9 @@ export default function QuizScreen(): React.JSX.Element
         getTodayStats,
         toggleWordExclusion,
         isWordExcluded,
+        getSavedQuizSession,
+        saveQuizSession,
+        clearQuizSession,
     } = useAppStore();
 
     // 집중 복습 모드 확인
@@ -230,6 +233,36 @@ export default function QuizScreen(): React.JSX.Element
 
     useEffect(() =>
     {
+        // 집중 복습 모드가 아닐 때만 저장된 세션 확인
+        if (!bIsFocusedMode)
+        {
+            const stSavedSession = getSavedQuizSession();
+            if (stSavedSession)
+            {
+                // 저장된 세션이 있으면 이어하기 여부 확인
+                Alert.alert(
+                    '이어서 학습하기',
+                    `이전에 학습하던 내용이 있습니다.\n(${stSavedSession.nCurrentIndex}/${stSavedSession.aQuestions.length}문제 진행)\n\n이어서 학습하시겠습니까?`,
+                    [
+                        {
+                            text: '처음부터',
+                            style: 'destructive',
+                            onPress: () =>
+                            {
+                                clearQuizSession();
+                                initializeSession();
+                            },
+                        },
+                        {
+                            text: '이어하기',
+                            style: 'default',
+                            onPress: () => restoreSession(stSavedSession),
+                        },
+                    ]
+                );
+                return;
+            }
+        }
         initializeSession();
     }, []);
 
@@ -427,6 +460,60 @@ export default function QuizScreen(): React.JSX.Element
         setPhase('quiz');
     };
 
+    /**
+     * @brief 저장된 세션 복원
+     */
+    const restoreSession = (stSession: typeof getSavedQuizSession extends () => infer R ? NonNullable<R> : never): void =>
+    {
+        setQuestions(stSession.aQuestions);
+        setCurrentIndex(stSession.nCurrentIndex);
+        setCorrectCount(stSession.nCorrectCount);
+        setReviewCount(stSession.nReviewCount);
+        setNewCount(stSession.nNewCount);
+        setNewWords([]);  // 미리보기는 건너뛰기
+        setPreviewIndex(0);
+        setSelectedOption(null);
+        setShowResult(false);
+        setTypedAnswer('');
+        setTypingCorrect(null);
+        progressAnim.setValue(stSession.nCurrentIndex / stSession.aQuestions.length);
+        setPhase('quiz');
+    };
+
+    /**
+     * @brief 현재 세션 저장 (뒤로가기 시)
+     */
+    const saveCurrentSession = useCallback((): void =>
+    {
+        // 집중 복습 모드나 결과 화면에서는 저장하지 않음
+        if (bIsFocusedMode || szPhase === 'result' || aQuestions.length === 0) return;
+
+        // 퀴즈가 진행 중일 때만 저장
+        if (szPhase === 'quiz' && nCurrentIndex < aQuestions.length)
+        {
+            const szToday = new Date().toISOString().split('T')[0];
+            saveQuizSession({
+                szDate: szToday,
+                aQuestions,
+                nCurrentIndex,
+                nCorrectCount,
+                nReviewCount,
+                nNewCount,
+            });
+        }
+    }, [bIsFocusedMode, szPhase, aQuestions, nCurrentIndex, nCorrectCount, nReviewCount, nNewCount, saveQuizSession]);
+
+    // 화면 이탈 시 세션 저장
+    useEffect(() =>
+    {
+        const unsubscribe = navigation.addListener('beforeRemove', () =>
+        {
+            saveCurrentSession();
+        });
+
+        return unsubscribe;
+    }, [navigation, saveCurrentSession]);
+
     const stCurrentQuestion = aQuestions[nCurrentIndex];
 
     // 예문에서 학습 단어 하이라이트
@@ -569,6 +656,8 @@ export default function QuizScreen(): React.JSX.Element
         }
         else
         {
+            // 퀴즈 완료 시 세션 삭제
+            clearQuizSession();
             setPhase('result');
         }
     };

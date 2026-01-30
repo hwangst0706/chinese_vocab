@@ -114,3 +114,14 @@ export interface ReviewTestSettings
     nQuestionCount: number;   // 문제 수 (기본: 20)
     dtLastTest?: string;      // 마지막 테스트 날짜
 }
+
+// 퀴즈 세션 (이어하기용)
+export interface QuizSession
+{
+    szDate: string;           // 세션 날짜 (YYYY-MM-DD)
+    aQuestions: QuizQuestion[];  // 퀴즈 문제 목록
+    nCurrentIndex: number;    // 현재 문제 인덱스
+    nCorrectCount: number;    // 정답 수
+    nReviewCount: number;     // 복습 단어 수
+    nNewCount: number;        // 새 단어 수
+}
