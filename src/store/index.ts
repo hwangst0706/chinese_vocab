@@ -15,6 +15,7 @@ import {
     ReviewTestSettings,
     ReviewTestRecord,
 } from '../types';
+import { BackupData } from '../types/backup';
 import { allWords, getWordsByLevel, levelWordCounts } from '../data';
 
 /**
@@ -200,6 +201,13 @@ interface AppState
 
     // 특정 날짜에 학습했는지 확인
     hasLearnedOnDate: (szDate: string) => boolean;
+
+    // ============================================================
+    // 백업/복원 관련
+    // ============================================================
+
+    // 백업 데이터 가져오기 (복원용)
+    importBackupData: (stBackupData: BackupData) => void;
 }
 
 const getDateKey = (): string =>
@@ -753,6 +761,25 @@ export const useAppStore = create<AppState>()(
                 }
 
                 return nLongestStreak;
+            },
+
+            // ============================================================
+            // 백업/복원 관련 구현
+            // ============================================================
+
+            importBackupData: (stBackupData: BackupData) =>
+            {
+                set({
+                    wordProgress: stBackupData.wordProgress || {},
+                    dailyStats: stBackupData.dailyStats || {},
+                    reviewTestRecords: stBackupData.reviewTestRecords || [],
+                    settings: {
+                        ...get().settings,  // 기존 설정 유지 (API 키 등)
+                        ...stBackupData.settings,
+                    },
+                    reviewTestSettings: stBackupData.reviewTestSettings || get().reviewTestSettings,
+                    aExcludedWords: stBackupData.aExcludedWords || [],
+                });
             },
         }),
         {

@@ -10,6 +10,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StyleSheet } from 'react-native';
 import AppNavigator from './src/navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './src/contexts/ThemeContext';
+import { GoogleAuthProvider } from './src/contexts/GoogleAuthContext';
 
 function AppContent(): React.JSX.Element
 {
@@ -29,7 +30,9 @@ export default function App(): React.JSX.Element
 {
     return (
         <ThemeProvider>
-            <AppContent />
+            <GoogleAuthProvider>
+                <AppContent />
+            </GoogleAuthProvider>
         </ThemeProvider>
     );
 }

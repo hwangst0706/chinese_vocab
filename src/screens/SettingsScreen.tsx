@@ -20,6 +20,7 @@ import { useTheme, getHskLevelColor, ThemeMode } from '../contexts/ThemeContext'
 import { useAppStore } from '../store';
 import { HskLevel } from '../types';
 import { levelWordCounts } from '../data';
+import BackupSection from '../components/BackupSection';
 
 export default function SettingsScreen(): React.JSX.Element
 {
@@ -414,6 +415,9 @@ export default function SettingsScreen(): React.JSX.Element
                         </View>
                     </TouchableOpacity>
                 </View>
+
+                {/* Google Drive 백업 */}
+                <BackupSection colors={colors} />
 
                 {/* AI 설정 */}
                 <View style={[styles.section, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}>
