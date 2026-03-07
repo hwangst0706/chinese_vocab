@@ -386,7 +386,21 @@ export default function SettingsScreen(): React.JSX.Element
 
                     <TouchableOpacity
                         style={[styles.menuButton, { backgroundColor: colors.surfaceLight }]}
-                        onPress={() => navigation.navigate('ExcludedWords')}
+                        onPress={() => navigation.navigate('WordList')}
+                        activeOpacity={0.7}
+                    >
+                        <View style={styles.menuButtonInfo}>
+                            <Text style={[styles.menuButtonText, { color: colors.text }]}>단어 목록</Text>
+                            <Text style={[styles.menuButtonDescription, { color: colors.textSecondary }]}>
+                                급수별 전체 단어를 확인하고 관리합니다
+                            </Text>
+                        </View>
+                        <Text style={[styles.menuButtonArrow, { color: colors.textMuted }]}>{'>'}</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.menuButton, { backgroundColor: colors.surfaceLight }]}
+                        onPress={() => navigation.navigate('WordList', { bShowExcludedOnly: true })}
                         activeOpacity={0.7}
                     >
                         <View style={styles.menuButtonInfo}>
@@ -645,6 +659,10 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontWeight: '700',
         color: '#FFFFFF',
+    },
+    menuButtonArrow: {
+        fontSize: 18,
+        fontWeight: '300',
     },
     apiKeyContainer: {
         marginTop: 8,

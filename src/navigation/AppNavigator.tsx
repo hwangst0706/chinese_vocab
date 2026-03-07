@@ -17,6 +17,7 @@ import StatsScreen from '../screens/StatsScreen';
 import ExcludedWordsScreen from '../screens/ExcludedWordsScreen';
 import MostWrongWordsScreen from '../screens/MostWrongWordsScreen';
 import LeechWordsScreen from '../screens/LeechWordsScreen';
+import WordListScreen from '../screens/WordListScreen';
 import { useTheme } from '../contexts/ThemeContext';
 
 const Stack = createNativeStackNavigator();
@@ -117,6 +118,7 @@ function MainNavigator(): React.JSX.Element
             <Stack.Screen name="ExcludedWords" component={ExcludedWordsScreen} />
             <Stack.Screen name="MostWrongWords" component={MostWrongWordsScreen} />
             <Stack.Screen name="LeechWords" component={LeechWordsScreen} />
+            <Stack.Screen name="WordList" component={WordListScreen} />
         </Stack.Navigator>
     );
 }

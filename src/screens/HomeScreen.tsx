@@ -251,9 +251,11 @@ export default function HomeScreen(): React.JSX.Element
                         const levelColor = getHskLevelColor(nLevel, colors);
 
                         return (
-                            <View
+                            <TouchableOpacity
                                 key={nLevel}
                                 style={[styles.levelItem, { backgroundColor: colors.surface, shadowColor: colors.shadow }]}
+                                onPress={() => navigation.navigate('WordList', { nInitialLevel: nLevel })}
+                                activeOpacity={0.7}
                             >
                                 <View style={styles.levelHeader}>
                                     <View style={[styles.levelBadge, { backgroundColor: colors.surfaceLight }]}>
@@ -275,7 +277,7 @@ export default function HomeScreen(): React.JSX.Element
                                     {stStats.nLearnedWords} / {stStats.nTotalWords} 단어
                                     {stStats.nMasteredWords > 0 && ` (${stStats.nMasteredWords} 완료)`}
                                 </Text>
-                            </View>
+                            </TouchableOpacity>
                         );
                     })}
                 </View>
